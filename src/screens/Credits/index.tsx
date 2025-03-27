@@ -15,12 +15,40 @@ export function Credits() {
         </MyText>
 
         <View style={styles.list}>
-          {[1, 2].map((index) => (
+          {[1].map((index) => (
             <PersonCard
               key={index}
               data={{
-                name: `Exemplo ${index}`,
-                avatar_url: 'https://github.com/m4rcusml.png',
+                name: `Ana Vitória da Costa Farias`,
+                avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
+                presencePerCent: 100,
+                id: String(index),
+                status: 1,
+              }}
+            />
+          ))}
+        </View>
+        <View style={styles.list}>
+          {[2].map((index) => (
+            <PersonCard
+              key={index}
+              data={{
+                name: `Marcos Vinícius de S. Braga`,
+                avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
+                presencePerCent: 100,
+                id: String(index),
+                status: 1,
+              }}
+            />
+          ))}
+        </View>
+        <View style={styles.list}>
+          {[3].map((index) => (
+            <PersonCard
+              key={index}
+              data={{
+                name: `Gabriel Oliveira de Araújo`,
+                avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
                 presencePerCent: 100,
                 id: String(index),
                 status: 1,

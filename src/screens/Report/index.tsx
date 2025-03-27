@@ -66,13 +66,61 @@ export function Report() {
             Alunos com mais falta
           </MyText>
 
-          {[1, 2, 3, 4, 5].map((index) => (
+          {[1].map((index) => (
             <PersonCard
               key={index}
               data={{
-                name: `Exemplo ${index}`,
-                avatar_url: 'https://github.com/jlimaz.png',
-                presencePerCent: 100,
+                name: `Rafael Souza`,
+                avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
+                presencePerCent: 62,
+                id: String(index),
+                status: 1,
+              }}
+            />
+          ))}
+          {[2].map((index) => (
+            <PersonCard
+              key={index}
+              data={{
+                name: `Mariana Oliveira`,
+                avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
+                presencePerCent: 64,
+                id: String(index),
+                status: 1,
+              }}
+            />
+          ))}
+          {[3].map((index) => (
+            <PersonCard
+              key={index}
+              data={{
+                name: `Lucas Fernandes`,
+                avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
+                presencePerCent: 68,
+                id: String(index),
+                status: 1,
+              }}
+            />
+          ))}
+          {[4].map((index) => (
+            <PersonCard
+              key={index}
+              data={{
+                name: `Camila Andrade`,
+                avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
+                presencePerCent: 72,
+                id: String(index),
+                status: 1,
+              }}
+            />
+          ))}
+          {[4].map((index) => (
+            <PersonCard
+              key={index}
+              data={{
+                name: `João Pereira`,
+                avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
+                presencePerCent: 75,
                 id: String(index),
                 status: 1,
               }}
