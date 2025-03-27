@@ -3,15 +3,47 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { MyText } from '@/components/MyText';
 import { styles } from './styles';
-import { Field } from '@/components/Field';
 import { PersonCard } from '@/components/PersonCard';
 import { BarChart, PieChart } from 'react-native-gifted-charts';
 
 export function Report() {
+  const students = [
+    {
+      id: '1',
+      name: 'Rafael Souza',
+      avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
+      presencePerCent: 62,
+    },
+    {
+      id: '2',
+      name: 'Mariana Oliveira',
+      avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
+      presencePerCent: 64,
+    },
+    {
+      id: '3',
+      name: 'Lucas Fernandes',
+      avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
+      presencePerCent: 68,
+    },
+    {
+      id: '4',
+      name: 'Camila Andrade',
+      avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
+      presencePerCent: 72,
+    },
+    {
+      id: '5',
+      name: 'João Pereira',
+      avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
+      presencePerCent: 75,
+    },
+  ];
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <MyText variant='h1' style={styles.title}>
+        <MyText variant="h1" style={styles.title}>
           Painel de relatórios
         </MyText>
 
@@ -23,23 +55,23 @@ export function Report() {
             textSize={20}
             showTextBackground
             textBackgroundRadius={26}
-            textBackgroundColor='transparent'
+            textBackgroundColor="transparent"
             data={[
               { value: 18, color: '#FF6666', text: '18%', fontWeight: 'bold', textColor: 'white' },
               { value: 82, color: '#177AD5', text: '82%', fontWeight: 'bold', textColor: 'white' },
             ]}
           />
           <View>
-            <MyText variant='h6' color='black'>
+            <MyText variant="h6" color="black">
               Frequencia média geral: 82%
             </MyText>
-            <MyText variant='h6' color='black'>
+            <MyText variant="h6" color="black">
               Status: Bom
             </MyText>
           </View>
         </View>
 
-        <MyText variant='h3' style={styles.title}>
+        <MyText variant="h3" style={styles.title}>
           Comparação entre salas
         </MyText>
 
@@ -62,66 +94,18 @@ export function Report() {
         />
 
         <View style={styles.list}>
-          <MyText variant='h3' style={styles.title}>
+          <MyText variant="h3" style={styles.title}>
             Alunos com mais falta
           </MyText>
 
-          {[1].map((index) => (
+          {students.map((student) => (
             <PersonCard
-              key={index}
+              key={student.id}
               data={{
-                name: `Rafael Souza`,
-                avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
-                presencePerCent: 62,
-                id: String(index),
-                status: 1,
-              }}
-            />
-          ))}
-          {[2].map((index) => (
-            <PersonCard
-              key={index}
-              data={{
-                name: `Mariana Oliveira`,
-                avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
-                presencePerCent: 64,
-                id: String(index),
-                status: 1,
-              }}
-            />
-          ))}
-          {[3].map((index) => (
-            <PersonCard
-              key={index}
-              data={{
-                name: `Lucas Fernandes`,
-                avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
-                presencePerCent: 68,
-                id: String(index),
-                status: 1,
-              }}
-            />
-          ))}
-          {[4].map((index) => (
-            <PersonCard
-              key={index}
-              data={{
-                name: `Camila Andrade`,
-                avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
-                presencePerCent: 72,
-                id: String(index),
-                status: 1,
-              }}
-            />
-          ))}
-          {[4].map((index) => (
-            <PersonCard
-              key={index}
-              data={{
-                name: `João Pereira`,
-                avatar_url: 'https://cdn-icons-png.freepik.com/512/17740/17740782.png?uid=R191684037&ga=GA1.1.184522977.1739570380',
-                presencePerCent: 75,
-                id: String(index),
+                name: student.name,
+                avatar_url: student.avatar_url,
+                presencePerCent: student.presencePerCent,
+                id: student.id,
                 status: 1,
               }}
             />
@@ -129,5 +113,5 @@ export function Report() {
         </View>
       </ScrollView>
     </SafeAreaView>
-  )
+  );
 }
