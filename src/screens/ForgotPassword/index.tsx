@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { ImageBackground, ScrollView, View, Image, TextInput } from 'react-native'
+import { ImageBackground, ScrollView, View, Image, TextInput, Alert } from 'react-native'
 import { styles } from './styles'
 
 import { NavigationProp, useNavigation } from '@react-navigation/native'
@@ -19,7 +19,8 @@ export function ForgotPassword() {
   const { goBack } = useNavigation<NavigationProp<RootStackParamList>>();
 
   function sendCode() {
-    goBack()
+    Alert.alert('Código enviado', 'Um código foi enviado para o seu email.')
+    //goBack()
   }
 
   return (
