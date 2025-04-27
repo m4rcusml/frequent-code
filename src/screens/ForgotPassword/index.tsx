@@ -10,19 +10,36 @@ import { Field } from '@/components/Field';
 import { Button } from '@/components/Button';
 
 import { Envelope } from 'phosphor-react-native';
+import { getAuth, sendPasswordResetEmail } from 'firebase/auth';
 
 export function ForgotPassword() {
   const { goBack } = useNavigation<NavigationProp<RootStackParamList>>();
-  const [email, setEmail] = useState(''); // Adicionado estado para o email
+  const [email, setEmail] = useState('');
 
-  function sendCode() {
+  async function sendCode() {
     if (!email) {
       Alert.alert('Erro', 'Por favor, preencha o campo de email.');
       return;
     }
 
-    Alert.alert('Código enviado', 'Um código foi enviado para o seu email.');
-    // goBack();
+    const auth = getAuth();
+    try {
+      await sendPasswordResetEmail(auth, email);
+      Alert.alert('Sucesso', 'Um e-mail de redefinição de senha foi enviado para o seu endereço.');
+      goBack(); // Retorna à tela anterior
+    } catch (error: any) {
+      console.log(error);
+      if (error.code === 'auth/invalid-email') {
+        Alert.alert('Erro', 'Email inválido');
+      } else if (error.code === 'auth/user-not-found') {
+        Alert.alert('Erro', 'Usuário não encontrado');
+      } else {
+        Alert.alert(
+          'Erro',
+          'Ocorreu um erro ao enviar o e-mail de redefinição de senha. Tente novamente mais tarde.'
+        );
+      }
+    }
   }
 
   return (
@@ -34,8 +51,8 @@ export function ForgotPassword() {
           label="Email"
           placeholder="Digite seu email"
           icon={Envelope}
-          value={email} // Passa o valor do estado
-          onChangeText={setEmail} // Atualiza o estado ao digitar
+          value={email}
+          onChangeText={setEmail}
         />
         <Button onPress={sendCode}>Enviar código</Button>
       </ScrollView>

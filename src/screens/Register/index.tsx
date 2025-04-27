@@ -69,8 +69,6 @@ export function Register() {
           Alert.alert('Erro', 'Esse email já está em uso.');
         } else if (error.code === 'auth/invalid-email') {
           Alert.alert('Erro', 'Email inválido.');
-        } else if (error.code === 'auth/weak-password') {
-          Alert.alert('Erro', 'A senha deve ter pelo menos 6 caracteres.');
         } else {
           Alert.alert('Erro', 'Ocorreu um erro ao cadastrar o usuário.');
         }
