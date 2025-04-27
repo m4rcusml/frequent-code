@@ -1,14 +1,17 @@
-// import { initializeApp } from "firebase/app";
-// import { getAuth } from "firebase/auth";
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
 
-// const firebaseConfig = {
-//   apiKey: "",
-//   authDomain: "",
-//   projectId: "",
-//   storageBucket: "",
-//   messagingSenderId: "",
-//   appId: "",
-// };
+const firebaseConfig = {
+  apiKey: "AIzaSyBW_7oWIiyXWsiUkqkQXgVidmCEtzGtFPY",
+  authDomain: "frequencode.firebaseapp.com",
+  projectId: "frequencode",
+  storageBucket: "frequencode.firebasestorage.app",
+  messagingSenderId: "244211040015",
+  appId: "1:244211040015:web:223d78030ff878feb2487a",
+};
 
-// const app = initializeApp(firebaseConfig);
-// export const auth = getAuth(app);
+// Inicializa o Firebase
+const app = initializeApp(firebaseConfig);
+
+// Exporta a instância de autenticação
+export const auth = getAuth(app);
