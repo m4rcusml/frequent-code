@@ -9,6 +9,8 @@ import { Envelope, WarningCircle } from 'phosphor-react-native';
 import { Button } from '@/components/Button';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/services/firebaseConfig';
 import { RootTabParamList } from '@/routes/tab.routes';
 import { RootStackParamList } from '@/routes/stack.routes';
 
@@ -45,13 +47,55 @@ export function Login() {
     }
 
     const auth = getAuth();
+    console.log('Iniciando login...');
+
     signInWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
+      .then(async (userCredential) => {
+        console.log('Usuário autenticado com sucesso:', userCredential);
+
         const user = userCredential.user;
-        navigate('tab'); // Navega para a tela principal
+
+        // Verifica se o e-mail do usuário está disponível
+        if (!user.email) {
+          Alert.alert('Erro', 'O e-mail do usuário não está disponível.');
+          console.log('E-mail do usuário não está disponível.');
+          return;
+        }
+
+        console.log('E-mail do usuário:', user.email);
+
+        // Busca o documento do usuário no Firestore
+        try {
+          const userDocRef = doc(db, 'users', user.email);
+          console.log('Referência do documento do usuário:', userDocRef);
+
+          const userDoc = await getDoc(userDocRef);
+          console.log('Documento do usuário:', userDoc);
+
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            console.log('Dados do usuário:', userData);
+
+            // Verifica se o campo isAdmin existe e é verdadeiro
+            if (userData?.isAdmin) {
+              Alert.alert('Bem-vindo', 'Você está logado como administrador.');
+              navigate('tab'); // Navega para a tela de administrador
+            } else {
+              Alert.alert('Bem-vindo', 'Você está logado como usuário.');
+              navigate('Student'); // Navega para a tela principal
+            }
+          } else {
+            Alert.alert('Erro', 'Usuário não encontrado no banco de dados.');
+            console.log('Usuário não encontrado no Firestore.');
+          }
+        } catch (firestoreError) {
+          console.log('Erro ao acessar o Firestore:', firestoreError);
+          Alert.alert('Erro', 'Erro ao acessar o banco de dados. Tente novamente mais tarde.');
+        }
       })
       .catch((error) => {
-        console.log(error)
+        console.log('Erro ao fazer login:', error);
+
         if (error.code === 'auth/invalid-credential') {
           Alert.alert('Erro', 'Email ou senha incorretos');
         } else if (error.code === 'auth/invalid-email') {
@@ -61,7 +105,6 @@ export function Login() {
         } else {
           Alert.alert('Erro', 'Erro ao fazer login. Tente novamente mais tarde.');
         }
-        
       });
   }
 

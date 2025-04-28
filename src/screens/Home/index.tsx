@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -7,15 +8,28 @@ import { Field } from '@/components/Field';
 import { PersonCard } from '@/components/PersonCard';
 
 export function Home() {
+  const [turma, setTurma] = useState('');
+  const [data, setData] = useState('');
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <MyText variant='h1' style={styles.title}>
+        <MyText variant="h1" style={styles.title}>
           Painel administrativo
         </MyText>
 
-        <Field label='Turma' placeholder='3ano-xx' />
-        <Field label='Data' placeholder='dd/mm/aaaa' />
+        <Field
+          label="Turma"
+          placeholder="3ano-xx"
+          value={turma}
+          onChangeText={setTurma}
+        />
+        <Field
+          label="Data"
+          placeholder="dd/mm/aaaa"
+          value={data}
+          onChangeText={setData}
+        />
 
         <View style={styles.list}>
           {[1, 2, 3, 4, 5].map((index) => (
@@ -33,5 +47,5 @@ export function Home() {
         </View>
       </ScrollView>
     </SafeAreaView>
-  )
+  );
 }
