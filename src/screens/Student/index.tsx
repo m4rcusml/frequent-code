@@ -3,8 +3,10 @@ import { ScrollView, View, Text, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './styles';
 import { MyText } from '@/components/MyText';
-import { addDoc, collection, query, where, getDocs } from 'firebase/firestore';
-import { db, auth } from '@/services/firebaseConfig'; // Certifique-se de importar o Firestore e Auth configurados
+import { addDoc, collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
+import { db, auth } from '@/services/firebaseConfig';
+import * as Location from 'expo-location';
+import { getDistance } from 'geolib';
 
 interface CheckIn {
   userId: string;
@@ -20,10 +22,11 @@ const months = [
 ];
 
 export function Student() {
-  const [selectedDays, setSelectedDays] = useState<number[]>([]); // Armazena os dias com check-ins
+  const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [month, setMonth] = useState('JANEIRO');
   const [year, setYear] = useState('2025');
   const [checkins, setCheckins] = useState<CheckIn[]>([]);
+  const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number } | null>(null);
 
   useEffect(() => {
     const currentDate = new Date();
@@ -63,11 +66,77 @@ export function Student() {
     };
 
     fetchCheckins();
-  }, [month, year]); // Atualiza os check-ins ao mudar o mês ou o ano
+  }, [month, year]);
+
+  const getUserLocationAsync = async () => {
+    const { status } = await Location.requestForegroundPermissionsAsync();
+
+    if (status !== 'granted') {
+      Alert.alert('Erro', 'Permissão para acessar a localização negada');
+      return;
+    }
+
+    const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+    setUserLocation(location.coords);
+  };
+
+  useEffect(() => {
+    getUserLocationAsync();
+  }, []);
+
+  const isWithinCheckInTime = async (): Promise<boolean> => {
+    try {
+      const settingsDocRef = doc(db, 'settings', 'checkin');
+      const settingsDoc = await getDoc(settingsDocRef);
+
+      if (settingsDoc.exists()) {
+        const { startTime, endTime } = settingsDoc.data();
+
+        // Obtém o horário atual do dispositivo
+        const now = new Date();
+        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+        console.log(`Horário atual: ${currentTime}, Início: ${startTime}, Fim: ${endTime}`);
+
+        return currentTime >= startTime && currentTime <= endTime;
+      } else {
+        console.log('Configurações de horário não encontradas.');
+        return false;
+      }
+    } catch (error) {
+      console.log('Erro ao verificar horário de check-in:', error);
+      return false;
+    }
+  };
 
   const handleCheckIn = async () => {
     if (!auth.currentUser?.email) {
       Alert.alert('Erro', 'Usuário não autenticado.');
+      return;
+    }
+
+    // Verifica se o horário atual está dentro do intervalo permitido
+    if (!await isWithinCheckInTime()) {
+      Alert.alert('Erro', 'O check-in só pode ser realizado entre os horários permitidos.');
+      return;
+    }
+
+    if (!userLocation) {
+      Alert.alert('Erro', 'Localização não disponível.');
+      return;
+    }
+
+    const targetLocation = { latitude: -23.572578, longitude: -46.706910 }; // Exemplo: coordenadas de São Paulo
+
+    // Calcular a distância entre a localização do usuário e o local de check-in
+    const distance = getDistance(
+      { latitude: userLocation.latitude, longitude: userLocation.longitude },
+      targetLocation
+    );
+
+    if (distance > 100) { // Exemplo: se a distância for maior que 100 metros
+        
+      Alert.alert('Erro', 'Você precisa estar dentro de 100 metros do local de check-in.');
       return;
     }
 
@@ -113,22 +182,22 @@ export function Student() {
       months[today.getMonth()] === month &&
       today.getFullYear().toString() === year;
 
-    const isSelected = selectedDays.includes(day); // Verifica se o dia está na lista de check-ins
+    const isSelected = selectedDays.includes(day);
 
     return (
       <View
         style={[
           styles.calendarDay,
-          isToday && !isSelected && styles.todayUnselectedCell, // Dia atual antes do check-in
-          isSelected && styles.selectedDay, // Dia com check-in
+          isToday && !isSelected && styles.todayUnselectedCell,
+          isSelected && styles.selectedDay,
         ]}
         key={day}
       >
         <Text
           style={[
             styles.calendarDayText,
-            isToday && !isSelected && styles.todayUnselectedText, // Texto do dia atual antes do check-in
-            isSelected && styles.selectedDayText, // Texto do dia com check-in
+            isToday && !isSelected && styles.todayUnselectedText,
+            isSelected && styles.selectedDayText,
           ]}
         >
           {day}

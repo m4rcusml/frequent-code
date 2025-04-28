@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -6,10 +6,32 @@ import { MyText } from '@/components/MyText';
 import { styles } from './styles';
 import { Field } from '@/components/Field';
 import { PersonCard } from '@/components/PersonCard';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '@/services/firebaseConfig';
+
+// Define a tipagem para os check-ins
+interface CheckIn {
+  userId: string;
+  month: string;
+  name: string;
+  year: string;
+  [key: string]: any; // Para outros campos opcionais
+}
 
 export function Home() {
   const [turma, setTurma] = useState('');
   const [data, setData] = useState('');
+  const [checkIns, setCheckIns] = useState<CheckIn[]>([]); // Tipagem do estado
+
+  useEffect(() => {
+    const q = query(collection(db, 'checkins'), where('month', '==', 'ABRIL'), where('year', '==', '2025'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedCheckIns = snapshot.docs.map((doc) => doc.data() as CheckIn); // Tipagem dos dados
+      setCheckIns(fetchedCheckIns);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -32,12 +54,12 @@ export function Home() {
         />
 
         <View style={styles.list}>
-          {[1, 2, 3, 4, 5].map((index) => (
+          {checkIns.map((checkIn, index) => (
             <PersonCard
               key={index}
               data={{
-                name: `Exemplo ${index}`,
-                avatar_url: 'https://github.com/diego3g.png',
+                name: checkIn.userId || 'Usuário desconhecido', // Valor padrão
+                avatar_url: `https://robohash.org/${Math.random()}`, // Imagem aleatória
                 presencePerCent: 100,
                 id: String(index),
                 status: 1,

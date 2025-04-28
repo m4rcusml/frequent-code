@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScrollView, View, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -6,7 +6,7 @@ import { MyText } from '@/components/MyText';
 import { Field } from '@/components/Field';
 import { styles } from './styles';
 import { db } from '@/services/firebaseConfig';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/services/firebaseConfig';
 
@@ -14,6 +14,33 @@ export function AdminSettings() {
   const [turma, setTurma] = useState('');
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
+  const [startTime, setStartTime] = useState('');
+  const [endTime, setEndTime] = useState('');
+  const [currentStartTime, setCurrentStartTime] = useState('');
+  const [currentEndTime, setCurrentEndTime] = useState('');
+
+  // Função para buscar os horários atuais de check-in do Firestore
+  const fetchCheckInSettings = async () => {
+    try {
+      const settingsDocRef = doc(db, 'settings', 'checkin');
+      const settingsDoc = await getDoc(settingsDocRef);
+
+      if (settingsDoc.exists()) {
+        const { startTime, endTime } = settingsDoc.data();
+        setCurrentStartTime(startTime);
+        setCurrentEndTime(endTime);
+      } else {
+        console.log('Configurações de horário não encontradas.');
+      }
+    } catch (error) {
+      console.log('Erro ao buscar configurações de horário:', error);
+      Alert.alert('Erro', 'Não foi possível carregar as configurações de horário.');
+    }
+  };
+
+  useEffect(() => {
+    fetchCheckInSettings();
+  }, []);
 
   const handleAddStudent = async () => {
     if (!turma || !nome || !email) {
@@ -41,6 +68,31 @@ export function AdminSettings() {
     } catch (error) {
       console.log('Erro ao adicionar aluno:', error);
       Alert.alert('Erro', 'Não foi possível adicionar o aluno.');
+    }
+  };
+
+  const handleSaveCheckInSettings = async () => {
+    if (!startTime || !endTime) {
+      Alert.alert('Erro', 'Por favor, preencha os horários de início e término.');
+      return;
+    }
+
+    try {
+      // Salva o intervalo de horário permitido no Firestore
+      await setDoc(doc(db, 'settings', 'checkin'), {
+        startTime,
+        endTime,
+      });
+
+      Alert.alert('Sucesso', 'Configurações de horário de check-in salvas com sucesso!');
+      setStartTime('');
+      setEndTime('');
+
+      // Atualiza os horários exibidos
+      fetchCheckInSettings();
+    } catch (error) {
+      console.log('Erro ao salvar configurações de horário:', error);
+      Alert.alert('Erro', 'Não foi possível salvar as configurações de horário.');
     }
   };
 
@@ -73,6 +125,39 @@ export function AdminSettings() {
         <TouchableOpacity style={styles.addButton} onPress={handleAddStudent}>
           <MyText variant="h2" style={styles.addButtonText}>
             Adicionar Aluno
+          </MyText>
+        </TouchableOpacity>
+
+        <MyText variant="h1" style={styles.title}>
+          Configurações de Check-in
+        </MyText>
+
+        {/* Exibição dos horários atuais */}
+        <View style={styles.currentSettingsContainer}>
+          <MyText variant="h2" style={styles.currentSettingsText}>
+            Horário Atual de Início: {currentStartTime || 'Não definido'}
+          </MyText>
+          <MyText variant="h2" style={styles.currentSettingsText}>
+            Horário Atual de Término: {currentEndTime || 'Não definido'}
+          </MyText>
+        </View>
+
+        <Field
+          label="Horário de Início"
+          placeholder="Ex: 07:00"
+          value={startTime}
+          onChangeText={setStartTime}
+        />
+        <Field
+          label="Horário de Término"
+          placeholder="Ex: 11:00"
+          value={endTime}
+          onChangeText={setEndTime}
+        />
+
+        <TouchableOpacity style={styles.addButton} onPress={handleSaveCheckInSettings}>
+          <MyText variant="h2" style={styles.addButtonText}>
+            Salvar Configurações
           </MyText>
         </TouchableOpacity>
       </ScrollView>

@@ -20,4 +20,5 @@ export const styles = StyleSheet.create({
   list: {
     gap: 10
   }
+  
 })
