@@ -12,6 +12,8 @@ import { Button } from '@/components/Button';
 import { Envelope } from 'phosphor-react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/services/firebaseConfig';
+import { setDoc, doc } from 'firebase/firestore';
+import { db } from '@/services/firebaseConfig';
 
 export function Register() {
   const { goBack } = useNavigation<NavigationProp<RootStackParamList>>();
@@ -58,10 +60,23 @@ export function Register() {
     }
 
     createUserWithEmailAndPassword(auth, email, password)
-      .then((userCredential) => {
+      .then(async (userCredential) => {
         const user = userCredential.user;
-        Alert.alert('Sucesso', 'Usuário cadastrado com sucesso!');
-        goBack(); // Retorna à tela anterior
+
+        try {
+          // Adiciona o usuário ao Firestore usando o email como ID
+          await setDoc(doc(db, 'users', user.email!), {
+            email: user.email,
+            createdAt: new Date().toISOString(),
+            isAdmin: false,
+          });
+
+          Alert.alert('Sucesso', 'Usuário cadastrado com sucesso!');
+          goBack(); // Retorna à tela anterior
+        } catch (firestoreError) {
+          console.log('Erro ao salvar no Firestore:', firestoreError);
+          Alert.alert('Erro', 'Ocorreu um erro ao salvar os dados do usuário.');
+        }
       })
       .catch((error) => {
         console.log(error);

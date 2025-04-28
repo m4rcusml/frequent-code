@@ -15,55 +15,65 @@ export const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 16,
   },
-  infoContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  infoBox: {
-    flex: 1,
-    marginHorizontal: 8,
-  },
-  infoText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    marginTop: 4,
-  },
-  linkText: {
-    fontSize: 12,
-    color: '#8A52FE',
-    marginTop: 4,
-    textDecorationLine: 'underline',
-  },
   calendarContainer: {
     marginBottom: 16,
   },
-  calendar: {
+  monthSelector: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 8,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  monthYearText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#8A52FE',
+  },
+  weekDaysRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
+  },
+  weekDayCell: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  weekDayText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  calendarRow: {
+    flexDirection: 'row',
+    marginBottom: 8,
   },
   calendarDay: {
-    width: '12.5%',
+    flex: 1,
     aspectRatio: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    margin: 2,
     backgroundColor: '#EDEDED',
     borderRadius: 4,
   },
-  calendarText: {
+  calendarDayText: {
     fontSize: 14,
     color: '#333',
   },
+  todayUnselectedCell: {
+    backgroundColor: '#D3D3D3', // Cinza mais escuro para o dia atual antes do check-in
+  },
+  todayUnselectedText: {
+    color: '#000', // Texto preto para o dia atual antes do check-in
+  },
   selectedDay: {
-    backgroundColor: '#8A52FE', // Cor de fundo para o dia selecionado
+    backgroundColor: '#8A52FE', // Roxo para o dia selecionado após o check-in
   },
   selectedDayText: {
-    color: '#FFF', // Cor do texto para o dia selecionado
+    color: '#FFF', // Texto branco para o dia selecionado após o check-in
   },
   checkInButton: {
+    width: '50%',
+    alignSelf: 'center',
     backgroundColor: '#8A52FE',
     paddingVertical: 12,
     borderRadius: 8,
