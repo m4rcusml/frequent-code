@@ -3,14 +3,14 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 
 import { Home } from '@/screens/Home'
 import { Report } from '@/screens/Report'
-import { Credits } from '@/screens/Credits'
+import { AdminSettings } from '@/screens/AdminSettings'
 
 import { ChartBar, UsersThree } from 'phosphor-react-native'
 
 export type RootTabParamList = {
   Home: undefined
   Report: undefined
-  Credits: undefined
+  AdminSettings: undefined
 }
 
 const Stack = createBottomTabNavigator<RootTabParamList>()
@@ -32,7 +32,7 @@ export function TabRoutes() {
       <Stack.Screen name="Report" component={Report} options={{
         tabBarIcon: ({ color, size }) => <ChartBar size={38} color={color} />
       }} />
-      <Stack.Screen name="Credits" component={Credits} options={{
+      <Stack.Screen name="AdminSettings" component={AdminSettings} options={{
         tabBarIcon: ({ size }) => <Image source={require('@/assets/logo_no-title.png')} style={{ height: 44, objectFit: 'contain' }} />
       }} />
     </Stack.Navigator>

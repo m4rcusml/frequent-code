@@ -64,25 +64,37 @@ export function Login() {
 
         console.log('E-mail do usuário:', user.email);
 
-        // Busca o documento do usuário no Firestore
         try {
-          const userDocRef = doc(db, 'users', user.email);
-          console.log('Referência do documento do usuário:', userDocRef);
+          // Verifica se o usuário é um administrador
+          const adminDocRef = doc(db, 'admins', user.email); // Busca na coleção 'admins'
+          const adminDoc = await getDoc(adminDocRef);
 
-          const userDoc = await getDoc(userDocRef);
-          console.log('Documento do usuário:', userDoc);
+          if (adminDoc.exists()) {
+            const adminData = adminDoc.data();
+            console.log('Dados do administrador:', adminData);
 
-          if (userDoc.exists()) {
-            const userData = userDoc.data();
-            console.log('Dados do usuário:', userData);
+            if (adminData?.role === 'admin') {
+              Alert.alert('Bem-vindo', `Você está logado como administrador.`);
+              navigate('tab'); // Navega para a tela de configurações administrativas
+              return;
+            }
+          }
 
-            // Verifica se o campo isAdmin existe e é verdadeiro
-            if (userData?.isAdmin) {
-              Alert.alert('Bem-vindo', 'Você está logado como administrador.');
-              navigate('tab'); // Navega para a tela de administrador
+          // Se não for administrador, verifica se é um aluno
+          const studentDocRef = doc(db, 'students', user.email); // Busca na coleção 'students'
+          const studentDoc = await getDoc(studentDocRef);
+
+          if (studentDoc.exists()) {
+            const studentData = studentDoc.data();
+            console.log('Dados do aluno:', studentData);
+
+            // Verifica se o aluno pertence a uma turma
+            if (studentData?.turma) {
+              Alert.alert('Bem-vindo', `Você está logado como aluno da turma ${studentData.turma}.`);
+              navigate('Student'); // Navega para a tela principal do aluno
             } else {
-              Alert.alert('Bem-vindo', 'Você está logado como usuário.');
-              navigate('Student'); // Navega para a tela principal
+              Alert.alert('Erro', 'Aluno não está associado a nenhuma turma.');
+              console.log('Aluno não associado a nenhuma turma.');
             }
           } else {
             Alert.alert('Erro', 'Usuário não encontrado no banco de dados.');
@@ -110,10 +122,6 @@ export function Login() {
 
   function forgotPassword() {
     navigate('ForgotPassword');
-  }
-
-  function register() {
-    navigate('Register');
   }
 
   return (
@@ -147,7 +155,6 @@ export function Login() {
             setPassword(text);
             setErrors((prev) => ({ ...prev, password: '' })); // Limpa o erro ao digitar
           }}
-
         />
         {errors.password ? (
           <View style={styles.errorContainer}>
@@ -158,9 +165,6 @@ export function Login() {
 
         <Button onPress={login}>Entrar</Button>
 
-        <MyText style={styles.forgot} onPress={register}>
-          Criar uma conta
-        </MyText>
         <MyText style={styles.forgot} onPress={forgotPassword}>
           Esqueci minha senha
         </MyText>
