@@ -32,10 +32,15 @@ export const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#8A52FE',
-    padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
+    paddingVertical: 16,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 16,
+  },
+  buttonText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 16,
   },
   sectionTitle: {
     fontSize: 20,
@@ -65,7 +70,7 @@ export const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 6,
-    elevation: 5, // para Android
+    elevation: 5,
   },
   addButtonText: {
     color: '#fff',
@@ -118,5 +123,10 @@ export const styles = StyleSheet.create({
     backgroundColor: '#f5f5f5',
     borderRadius: 10,
     gap: 10,
+  },
+  instruction: {
+    color: '#666',
+    marginBottom: 10,
+    fontStyle: 'italic',
   },
 });

@@ -67,20 +67,20 @@ export interface Settings {
   type: 'checkin' | 'system' | 'notification';
   config: {
     checkin: {
-      allowedTimeWindow: {
+      allowedTimeWindow?: {
         start: string;
         end: string;
       };
-      maxDistance: number;
-      requireLocation: boolean;
-      requirePhoto: boolean;
+      maxDistance?: number;
+      requireLocation?: boolean;
+      requirePhoto?: boolean;
       allowedLocation?: {
         latitude: number;
         longitude: number;
         radius: number;
       };
     };
-    notification: {
+    notification?: {
       enabled: boolean;
       channels: string[];
       schedule: {
