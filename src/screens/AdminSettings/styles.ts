@@ -3,18 +3,39 @@ import { StyleSheet } from 'react-native';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: '#fff',
   },
   scroll: {
     padding: 20,
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: '#6A0DAD', // Roxo forte
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#8A52FE',
     marginBottom: 20,
     top: 20,
     alignSelf: 'center',
+  },
+  section: {
+    marginBottom: 30,
+    backgroundColor: '#fff',
+    padding: 15,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  button: {
+    backgroundColor: '#8A52FE',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginTop: 10,
   },
   sectionTitle: {
     fontSize: 20,
@@ -35,8 +56,9 @@ export const styles = StyleSheet.create({
   },
   addButton: {
     backgroundColor: '#8A52FE',
-    paddingVertical: 14,
+    paddingVertical: 12,
     borderRadius: 12,
+    width: '70%',
     alignItems: 'center',
     marginTop: 10,
     shadowColor: '#8A52FE',
@@ -47,7 +69,7 @@ export const styles = StyleSheet.create({
   },
   addButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
   },
   currentSettingsContainer: {
@@ -79,5 +101,22 @@ export const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 18,
     fontWeight: 'bold',
+  },
+  mapContainer: {
+    height: 300,
+    marginVertical: 15,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  map: {
+    width: '100%',
+    height: '100%',
+  },
+  locationContainer: {
+    marginTop: 15,
+    padding: 15,
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    gap: 10,
   },
 });

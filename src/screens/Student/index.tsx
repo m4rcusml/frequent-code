@@ -3,17 +3,11 @@ import { ScrollView, View, Text, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './styles';
 import { MyText } from '@/components/MyText';
-import { addDoc, collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db, auth } from '@/services/firebaseConfig';
 import * as Location from 'expo-location';
 import { getDistance } from 'geolib';
-
-interface CheckIn {
-  userId: string;
-  date: string;
-  month: string;
-  year: string;
-}
+import { CheckIn } from '@/types/database';
+import { createCheckIn, getCheckInsByUser } from '@/services/database';
 
 const weekDays = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 const months = [
@@ -42,22 +36,20 @@ export function Student() {
           return;
         }
 
-        const q = query(
-          collection(db, 'checkins'),
-          where('userId', '==', auth.currentUser.email),
-          where('month', '==', month),
-          where('year', '==', year)
-        );
+        const startDate = new Date(parseInt(year), months.indexOf(month), 1);
+        const endDate = new Date(parseInt(year), months.indexOf(month) + 1, 0);
 
-        const querySnapshot = await getDocs(q);
-        const fetchedCheckins = querySnapshot.docs.map((doc) => doc.data() as CheckIn);
+        const fetchedCheckins = await getCheckInsByUser(
+          auth.currentUser.email,
+          startDate,
+          endDate
+        );
 
         setCheckins(fetchedCheckins);
 
         // Atualiza os dias selecionados com base nos check-ins
         const daysWithCheckins = fetchedCheckins.map((checkin) => {
-          const checkinDate = new Date(checkin.date);
-          return checkinDate.getDate();
+          return checkin.date.getDate();
         });
         setSelectedDays(daysWithCheckins);
       } catch (error) {
@@ -68,46 +60,21 @@ export function Student() {
     fetchCheckins();
   }, [month, year]);
 
-  const getUserLocationAsync = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-
-    if (status !== 'granted') {
-      Alert.alert('Erro', 'Permissão para acessar a localização negada');
-      return;
-    }
-
-    const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-    setUserLocation(location.coords);
-  };
-
   useEffect(() => {
-    getUserLocationAsync();
-  }, []);
-
-  const isWithinCheckInTime = async (): Promise<boolean> => {
-    try {
-      const settingsDocRef = doc(db, 'settings', 'checkin');
-      const settingsDoc = await getDoc(settingsDocRef);
-
-      if (settingsDoc.exists()) {
-        const { startTime, endTime } = settingsDoc.data();
-
-        // Obtém o horário atual do dispositivo
-        const now = new Date();
-        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-        console.log(`Horário atual: ${currentTime}, Início: ${startTime}, Fim: ${endTime}`);
-
-        return currentTime >= startTime && currentTime <= endTime;
-      } else {
-        console.log('Configurações de horário não encontradas.');
-        return false;
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permissão negada', 'Precisamos da sua localização para realizar o check-in.');
+        return;
       }
-    } catch (error) {
-      console.log('Erro ao verificar horário de check-in:', error);
-      return false;
-    }
-  };
+
+      const location = await Location.getCurrentPositionAsync({});
+      setUserLocation({
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+      });
+    })();
+  }, []);
 
   const handleCheckIn = async () => {
     if (!auth.currentUser?.email) {
@@ -115,59 +82,42 @@ export function Student() {
       return;
     }
 
-    // Verifica se o horário atual está dentro do intervalo permitido
-    if (!await isWithinCheckInTime()) {
-      Alert.alert('Erro', 'O check-in só pode ser realizado entre os horários permitidos.');
-      return;
-    }
-
     if (!userLocation) {
-      Alert.alert('Erro', 'Localização não disponível.');
+      Alert.alert('Erro', 'Não foi possível obter sua localização.');
       return;
     }
-
-    const targetLocation = { latitude: -23.572578, longitude: -46.706910 }; // Exemplo: coordenadas de São Paulo
-
-    // Calcular a distância entre a localização do usuário e o local de check-in
-    const distance = getDistance(
-      { latitude: userLocation.latitude, longitude: userLocation.longitude },
-      targetLocation
-    );
-
-    if (distance > 100) { // Exemplo: se a distância for maior que 100 metros
-        
-      Alert.alert('Erro', 'Você precisa estar dentro de 100 metros do local de check-in.');
-      return;
-    }
-
-    const today = new Date();
-    const formattedDate = today.toISOString().split('T')[0]; // Obtém a data no formato "YYYY-MM-DD"
 
     try {
+      const today = new Date();
+      const formattedDate = today.toISOString().split('T')[0];
+
       // Verifica se já existe um check-in para o dia atual
-      const q = query(
-        collection(db, 'checkins'),
-        where('userId', '==', auth.currentUser.email),
-        where('date', '>=', `${formattedDate}T00:00:00.000Z`), // Início do dia
-        where('date', '<=', `${formattedDate}T23:59:59.999Z`) // Fim do dia
+      const existingCheckins = await getCheckInsByUser(
+        auth.currentUser.email,
+        new Date(today.setHours(0, 0, 0, 0)),
+        new Date(today.setHours(23, 59, 59, 999))
       );
 
-      const querySnapshot = await getDocs(q);
-
-      if (!querySnapshot.empty) {
+      if (existingCheckins.length > 0) {
         Alert.alert('Aviso', 'Você já realizou um check-in hoje.');
         return;
       }
 
-      // Realiza o check-in
-      await addDoc(collection(db, 'checkins'), {
-        userId: auth.currentUser.email, // Usa o e-mail do usuário autenticado
-        date: today.toISOString(),
-        month,
-        year,
-      });
+      // TODO: Obter o classId do usuário atual
+      const classId = 'default-class-id'; // Substituir pela lógica real
 
-      setSelectedDays((prev) => [...prev, today.getDate()]); // Adiciona o dia atual à lista de check-ins
+      // Realiza o check-in
+      await createCheckIn(
+        auth.currentUser.email,
+        classId,
+        {
+          latitude: userLocation.latitude,
+          longitude: userLocation.longitude,
+          accuracy: 0, // TODO: Implementar precisão real
+        }
+      );
+
+      setSelectedDays((prev) => [...prev, today.getDate()]);
       Alert.alert('Sucesso', 'Check-in realizado com sucesso!');
     } catch (error) {
       console.log('Erro ao salvar check-in:', error);
@@ -268,7 +218,7 @@ export function Student() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <MyText variant="h1" style={styles.title}>
-          Painel do estudante
+          Check-in
         </MyText>
 
         <View style={styles.calendarContainer}>
@@ -307,8 +257,11 @@ export function Student() {
           {renderCalendarGrid()}
         </View>
 
-        <TouchableOpacity style={styles.checkInButton} onPress={handleCheckIn}>
-          <Text style={styles.checkInText}>Realizar check-in</Text>
+        <TouchableOpacity
+          style={styles.checkInButton}
+          onPress={handleCheckIn}
+        >
+          <MyText variant="button">Realizar Check-in</MyText>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

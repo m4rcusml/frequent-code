@@ -65,36 +65,22 @@ export function Login() {
         console.log('E-mail do usuário:', user.email);
 
         try {
-          // Verifica se o usuário é um administrador
-          const adminDocRef = doc(db, 'admins', user.email); // Busca na coleção 'admins'
-          const adminDoc = await getDoc(adminDocRef);
+          // Busca o usuário na coleção 'users'
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
 
-          if (adminDoc.exists()) {
-            const adminData = adminDoc.data();
-            console.log('Dados do administrador:', adminData);
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            console.log('Dados do usuário:', userData);
 
-            if (adminData?.role === 'admin') {
+            if (userData.role === 'admin') {
               Alert.alert('Bem-vindo', `Você está logado como administrador.`);
-              navigate('tab'); // Navega para a tela de configurações administrativas
-              return;
-            }
-          }
-
-          // Se não for administrador, verifica se é um aluno
-          const studentDocRef = doc(db, 'students', user.email); // Busca na coleção 'students'
-          const studentDoc = await getDoc(studentDocRef);
-
-          if (studentDoc.exists()) {
-            const studentData = studentDoc.data();
-            console.log('Dados do aluno:', studentData);
-
-            // Verifica se o aluno pertence a uma turma
-            if (studentData?.turma) {
-              Alert.alert('Bem-vindo', `Você está logado como aluno da turma ${studentData.turma}.`);
-              navigate('Student'); // Navega para a tela principal do aluno
+              navigate('tab');
+            } else if (userData.role === 'student') {
+              Alert.alert('Bem-vindo', `Você está logado como aluno.`);
+              navigate('Student');
             } else {
-              Alert.alert('Erro', 'Aluno não está associado a nenhuma turma.');
-              console.log('Aluno não associado a nenhuma turma.');
+              Alert.alert('Erro', 'Tipo de usuário não reconhecido.');
             }
           } else {
             Alert.alert('Erro', 'Usuário não encontrado no banco de dados.');
