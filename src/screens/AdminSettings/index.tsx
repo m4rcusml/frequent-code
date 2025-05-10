@@ -7,7 +7,7 @@ import * as Location from 'expo-location';
 import { MyText } from '@/components/MyText';
 import { Field } from '@/components/Field';
 import { styles } from './styles';
-import { createUser, updateSettings } from '@/services/database';
+import { createUser, updateSettings, getSettings } from '@/services/database';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '@/services/firebaseConfig';
 
@@ -36,6 +36,9 @@ export function AdminSettings() {
     longitudeDelta: 0.0421,
   });
 
+  const [startSchoolYear, setStartSchoolYear] = useState('');
+  const [savedSchoolYear, setSavedSchoolYear] = useState('');
+
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -54,6 +57,12 @@ export function AdminSettings() {
         });
         updateAddress(location.coords.latitude, location.coords.longitude);
       }
+      // Buscar data salva do ano letivo
+      try {
+        const settings = await getSettings('checkin');
+        const dataSalva = settings?.config?.checkin?.startSchoolYear || '';
+        setSavedSchoolYear(dataSalva);
+      } catch {}
     })();
   }, []);
 
@@ -208,6 +217,42 @@ export function AdminSettings() {
     }
   };
 
+  // Função para formatar a data como DD/MM/AAAA
+  const formatDate = (text: string) => {
+    // Remove tudo que não for número
+    let cleaned = text.replace(/[^0-9]/g, '');
+    if (cleaned.length > 8) cleaned = cleaned.slice(0, 8);
+    let formatted = '';
+    if (cleaned.length > 4) {
+      formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2, 4)}/${cleaned.slice(4)}`;
+    } else if (cleaned.length > 2) {
+      formatted = `${cleaned.slice(0, 2)}/${cleaned.slice(2)}`;
+    } else {
+      formatted = cleaned;
+    }
+    return formatted;
+  };
+
+  const handleSaveSchoolYear = async () => {
+    if (!startSchoolYear) {
+      Alert.alert('Erro', 'Por favor, preencha a data de início do ano letivo.');
+      return;
+    }
+    try {
+      await updateSettings('checkin', {
+        checkin: {
+          startSchoolYear,
+        },
+      }, auth.currentUser?.email || 'system');
+      Alert.alert('Sucesso', 'Ano letivo salvo com sucesso!');
+      setStartSchoolYear('');
+      setSavedSchoolYear(startSchoolYear);
+    } catch (error) {
+      console.log('Erro ao salvar ano letivo:', error);
+      Alert.alert('Erro', 'Não foi possível salvar o ano letivo.');
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -344,6 +389,30 @@ export function AdminSettings() {
               <MyText variant="button" style={styles.buttonText}>Salvar Localização</MyText>
             </TouchableOpacity>
           </View>
+        </View>
+
+        <View style={styles.section}>
+          <MyText variant="h2">Ano Letivo</MyText>
+          <MyText variant="body2" style={styles.instruction}>
+            Defina a data de início do ano letivo para os relatórios
+          </MyText>
+          {savedSchoolYear ? (
+            <MyText variant="body2" style={{ marginBottom: 6, color: '#8A52FE' }}>
+              Data atualmente salva: <MyText style={{ fontWeight: 'bold' }}>{savedSchoolYear}</MyText>
+            </MyText>
+          ) : null}
+          <Field
+            label="Início do Ano Letivo"
+            placeholder="DD/MM/AAAA"
+            value={startSchoolYear}
+            onChangeText={text => setStartSchoolYear(formatDate(text))}
+          />
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleSaveSchoolYear}
+          >
+            <MyText variant="button" style={styles.buttonText}>Salvar Ano Letivo</MyText>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>

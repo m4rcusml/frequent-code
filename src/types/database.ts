@@ -79,6 +79,7 @@ export interface Settings {
         longitude: number;
         radius: number;
       };
+      startSchoolYear?: string;
     };
     notification?: {
       enabled: boolean;
