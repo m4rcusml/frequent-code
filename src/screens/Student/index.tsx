@@ -80,27 +80,6 @@ export function Student() {
     })();
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      if (!auth.currentUser?.uid) return;
-      // Buscar dados do usuário
-      const user = await getUser(auth.currentUser.uid);
-      if (user) {
-        setUserName(user.name);
-        setUserClass('');
-      }
-      // Buscar horário permitido
-      const settings = await getSettings('checkin');
-      if (settings?.config?.checkin?.allowedTimeWindow) {
-        setCheckinWindow(settings.config.checkin.allowedTimeWindow);
-      }
-      // Buscar histórico dos últimos 5 check-ins
-      const email = auth.currentUser?.email || '';
-      const allCheckins = await getCheckInsByUser(email, new Date(2000,0,1), new Date());
-      setHistory(allCheckins.slice(0, 5));
-    })();
-  }, []);
-
   const handleCheckIn = async () => {
     if (!auth.currentUser?.email) {
       Alert.alert('Erro', 'Usuário não autenticado.');
