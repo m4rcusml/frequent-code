@@ -66,8 +66,8 @@ export function AdminSettings() {
         status: 'active',
         profile: {
           avatar: null,
-          phone: null,
-          address: null,
+          phone: phone || null,
+          address: addressField || null,
         },
       });
 
@@ -75,6 +75,8 @@ export function AdminSettings() {
       setTurma('');
       setNome('');
       setEmail('');
+      setPhone('');
+      setAddressField('');
     } catch (error: any) {
       console.log('Erro ao adicionar aluno:', error);
       if (error.code === 'auth/email-already-in-use') {
@@ -177,6 +179,18 @@ export function AdminSettings() {
             placeholder="email@exemplo.com"
             value={email}
             onChangeText={setEmail}
+          />
+          <Field
+            label="Telefone (opcional)"
+            placeholder="(92) 99999-9999"
+            value={phone}
+            onChangeText={setPhone}
+          />
+          <Field
+            label="Endereço (opcional)"
+            placeholder="Rua, número, bairro"
+            value={addressField}
+            onChangeText={setAddressField}
           />
           <TouchableOpacity
             style={styles.button}
