@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, View, TouchableOpacity, Alert, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import MapView, { Marker, Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
 
 import { MyText } from '@/components/MyText';
@@ -24,29 +25,49 @@ export function AdminSettings() {
   } | null>(null);
   const [radius, setRadius] = useState('100'); // Raio em metros
   const [address, setAddress] = useState<string>('');
+  const [mapRegion, setMapRegion] = useState({
+    latitude: -23.550520,
+    longitude: -46.633308,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
 
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
         const location = await Location.getCurrentPositionAsync({});
+        const newRegion = {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        };
+        setMapRegion(newRegion);
         setSelectedLocation({
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         });
-        // Obter endereço
-        const [addressResult] = await Location.reverseGeocodeAsync({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        });
-        if (addressResult) {
-          setAddress(
-            `${addressResult.street}, ${addressResult.district}, ${addressResult.city}`
-          );
-        }
+        updateAddress(location.coords.latitude, location.coords.longitude);
       }
     })();
   }, []);
+
+  const updateAddress = async (latitude: number, longitude: number) => {
+    try {
+      const [addressResult] = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude,
+      });
+      if (addressResult) {
+        setAddress(
+          `${addressResult.street}, ${addressResult.district}, ${addressResult.city}`
+        );
+      }
+    } catch (error) {
+      console.log('Erro ao obter endereço:', error);
+    }
+  };
 
   const handleAddStudent = async () => {
     if (!turma || !nome || !email) {
@@ -85,9 +106,9 @@ export function AdminSettings() {
     }
   };
 
-  const handleSaveCheckInSettings = async () => {
-    if (!startTime || !endTime || !selectedLocation) {
-      Alert.alert('Erro', 'Por favor, preencha todos os campos e selecione um local.');
+  const handleSaveTimeSettings = async () => {
+    if (!startTime || !endTime) {
+      Alert.alert('Erro', 'Por favor, preencha os horários de início e fim.');
       return;
     }
 
@@ -98,26 +119,10 @@ export function AdminSettings() {
             start: startTime,
             end: endTime,
           },
-          maxDistance: parseInt(radius),
-          requireLocation: true,
-          requirePhoto: false,
-          allowedLocation: {
-            latitude: selectedLocation.latitude,
-            longitude: selectedLocation.longitude,
-            radius: parseInt(radius),
-          },
-        },
-        notification: {
-          enabled: true,
-          channels: ['email'],
-          schedule: {
-            time: '08:00',
-            days: [1, 2, 3, 4, 5],
-          },
         },
       }, auth.currentUser?.email || 'system');
 
-      Alert.alert('Sucesso', 'Configurações de check-in salvas com sucesso!');
+      Alert.alert('Sucesso', 'Configurações de horário salvas com sucesso!');
       setStartTime('');
       setEndTime('');
     } catch (error) {
@@ -126,28 +131,74 @@ export function AdminSettings() {
     }
   };
 
+  const handleSaveLocationSettings = async () => {
+    if (!selectedLocation) {
+      Alert.alert('Erro', 'Por favor, selecione um local no mapa.');
+      return;
+    }
+
+    const radiusValue = parseInt(radius);
+    if (isNaN(radiusValue) || radiusValue <= 0) {
+      Alert.alert('Erro', 'O raio deve ser um número maior que zero.');
+      return;
+    }
+
+    try {
+      await updateSettings('checkin', {
+        checkin: {
+          maxDistance: radiusValue,
+          requireLocation: true,
+          allowedLocation: {
+            latitude: selectedLocation.latitude,
+            longitude: selectedLocation.longitude,
+            radius: radiusValue,
+          },
+        },
+      }, auth.currentUser?.email || 'system');
+
+      Alert.alert('Sucesso', 'Configurações de localização salvas com sucesso!');
+    } catch (error) {
+      console.log('Erro ao salvar configurações:', error);
+      Alert.alert('Erro', 'Não foi possível salvar as configurações.');
+    }
+  };
+
+  const handleMapPress = async (e: any) => {
+    const { latitude, longitude } = e.nativeEvent.coordinate;
+    setSelectedLocation({ latitude, longitude });
+    updateAddress(latitude, longitude);
+  };
+
   const handleUpdateLocation = async () => {
     try {
       const location = await Location.getCurrentPositionAsync({});
+      const newRegion = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      };
+      setMapRegion(newRegion);
       setSelectedLocation({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
-      
-      // Obter endereço
-      const [addressResult] = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-      if (addressResult) {
-        setAddress(
-          `${addressResult.street}, ${addressResult.district}, ${addressResult.city}`
-        );
-      }
-      
+      updateAddress(location.coords.latitude, location.coords.longitude);
       Alert.alert('Sucesso', 'Localização atualizada com sucesso!');
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível obter a localização atual.');
+    }
+  };
+
+  const handleRadiusChange = (text: string) => {
+    // Remove caracteres não numéricos
+    const numericValue = text.replace(/[^0-9]/g, '');
+    
+    // Se o valor for vazio ou zero, mantém como '1'
+    if (!numericValue || parseInt(numericValue) === 0) {
+      setRadius('1');
+    } else {
+      setRadius(numericValue);
     }
   };
 
@@ -182,12 +233,15 @@ export function AdminSettings() {
             style={styles.button}
             onPress={handleAddStudent}
           >
-            <MyText variant="button">Adicionar Aluno</MyText>
+            <MyText variant="button" style={styles.buttonText}>Adicionar Aluno</MyText>
           </TouchableOpacity>
         </View>
 
         <View style={styles.section}>
-          <MyText variant="h2">Configurações de Check-in</MyText>
+          <MyText variant="h2">Horário de Check-in</MyText>
+          <MyText variant="body2" style={styles.instruction}>
+            Defina o período em que os alunos podem realizar check-in
+          </MyText>
           <Field
             label="Horário de Início"
             placeholder="08:00"
@@ -200,17 +254,53 @@ export function AdminSettings() {
             value={endTime}
             onChangeText={setEndTime}
           />
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleSaveTimeSettings}
+          >
+            <MyText variant="button" style={styles.buttonText}>Salvar Horários</MyText>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.section}>
+          <MyText variant="h2">Localização de Check-in</MyText>
+          <MyText variant="body2" style={styles.instruction}>
+            Defina a área onde os alunos podem realizar check-in
+          </MyText>
           <Field
             label="Raio Permitido (metros)"
             placeholder="100"
             value={radius}
-            onChangeText={setRadius}
+            onChangeText={handleRadiusChange}
             keyboardType="numeric"
           />
           
           <View style={styles.locationContainer}>
-            <MyText variant="h5">Localização Atual</MyText>
-            {selectedLocation ? (
+            <View style={styles.mapContainer}>
+              <MapView
+                style={styles.map}
+                region={mapRegion}
+                onRegionChangeComplete={setMapRegion}
+                onPress={handleMapPress}
+              >
+                {selectedLocation && (
+                  <>
+                    <Marker
+                      coordinate={selectedLocation}
+                      title="Local de Check-in"
+                      description="Clique no mapa para mover este ponto"
+                    />
+                    <Circle
+                      center={selectedLocation}
+                      radius={parseInt(radius)}
+                      strokeColor="rgba(138, 82, 254, 0.5)"
+                      fillColor="rgba(138, 82, 254, 0.2)"
+                    />
+                  </>
+                )}
+              </MapView>
+            </View>
+            {selectedLocation && (
               <>
                 <MyText variant="body1">
                   Endereço: {address || 'Carregando...'}
@@ -222,23 +312,20 @@ export function AdminSettings() {
                   Longitude: {selectedLocation.longitude.toFixed(6)}
                 </MyText>
               </>
-            ) : (
-              <MyText variant="body1">Nenhuma localização selecionada</MyText>
             )}
             <TouchableOpacity
               style={styles.button}
               onPress={handleUpdateLocation}
             >
-              <MyText variant="button">Atualizar Localização</MyText>
+              <MyText variant="button" style={styles.buttonText}>Usar Minha Localização</MyText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={handleSaveLocationSettings}
+            >
+              <MyText variant="button" style={styles.buttonText}>Salvar Localização</MyText>
             </TouchableOpacity>
           </View>
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={handleSaveCheckInSettings}
-          >
-            <MyText variant="button">Salvar Configurações</MyText>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </SafeAreaView>
