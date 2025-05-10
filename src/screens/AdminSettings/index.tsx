@@ -35,8 +35,6 @@ export function AdminSettings() {
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
-  const [phone, setPhone] = useState('');
-  const [addressField, setAddressField] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -102,8 +100,6 @@ export function AdminSettings() {
       setTurma('');
       setNome('');
       setEmail('');
-      setPhone('');
-      setAddressField('');
       setPhone('');
       setAddressField('');
     } catch (error: any) {
@@ -238,18 +234,6 @@ export function AdminSettings() {
             placeholder="email@exemplo.com"
             value={email}
             onChangeText={setEmail}
-          />
-          <Field
-            label="Telefone (opcional)"
-            placeholder="(92) 99999-9999"
-            value={phone}
-            onChangeText={setPhone}
-          />
-          <Field
-            label="Endereço (opcional)"
-            placeholder="Rua, número, bairro"
-            value={addressField}
-            onChangeText={setAddressField}
           />
           <Field
             label="Telefone (opcional)"

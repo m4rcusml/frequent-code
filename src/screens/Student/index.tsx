@@ -7,7 +7,7 @@ import { db, auth } from '@/services/firebaseConfig';
 import * as Location from 'expo-location';
 import { getDistance } from 'geolib';
 import { CheckIn } from '@/types/database';
-import { createCheckIn, getCheckInsByUser, getUser, getSettings } from '@/services/database';
+import { createCheckIn, getCheckInsByUser, getUser, getSettings, getClass } from '@/services/database';
 
 const weekDays = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 const months = [
@@ -78,6 +78,64 @@ export function Student() {
         longitude: location.coords.longitude,
       });
     })();
+  }, []);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!auth.currentUser?.uid) return;
+      try {
+        const userData = await getUser(auth.currentUser.uid);
+        if (userData) {
+          setUserName(userData.name);
+          if (userData.profile?.classId) {
+            const classData = await getClass(userData.profile.classId);
+            setUserClass(classData ? classData.name : '');
+          } else {
+            setUserClass('');
+          }
+        }
+      } catch (error) {
+        console.log('Erro ao buscar dados do aluno:', error);
+      }
+    };
+    fetchUserData();
+  }, []);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const settings = await getSettings('checkin');
+        if (settings && settings.config?.checkin?.allowedTimeWindow) {
+          setCheckinWindow({
+            start: settings.config.checkin.allowedTimeWindow.start,
+            end: settings.config.checkin.allowedTimeWindow.end,
+          });
+        }
+      } catch (error) {
+        console.log('Erro ao buscar configurações:', error);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  useEffect(() => {
+    const fetchRecentHistory = async () => {
+      if (!auth.currentUser?.email) return;
+      try {
+        // Busca os check-ins do mês atual e pega os 5 mais recentes
+        const now = new Date();
+        const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const allCheckins = await getCheckInsByUser(auth.currentUser.email, startDate, endDate);
+        const recentCheckins = allCheckins
+          .sort((a, b) => b.date.getTime() - a.date.getTime())
+          .slice(0, 5);
+        setHistory(recentCheckins);
+      } catch (error) {
+        console.log('Erro ao buscar histórico recente:', error);
+      }
+    };
+    fetchRecentHistory();
   }, []);
 
   const handleCheckIn = async () => {

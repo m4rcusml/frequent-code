@@ -208,4 +208,16 @@ export const generateAttendanceReport = async (
 
   await setDoc(doc(db, 'attendance_reports', id), report);
   return report;
+};
+
+export const getClass = async (id: string): Promise<Class | null> => {
+  const docRef = doc(db, 'classes', id);
+  const docSnap = await getDoc(docRef);
+  if (!docSnap.exists()) return null;
+  const data = docSnap.data() as Class;
+  return {
+    ...data,
+    createdAt: (data.createdAt as any)?.toDate ? (data.createdAt as any).toDate() : data.createdAt,
+    updatedAt: (data.updatedAt as any)?.toDate ? (data.updatedAt as any).toDate() : data.updatedAt,
+  };
 }; 
