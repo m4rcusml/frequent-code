@@ -87,12 +87,7 @@ export function Student() {
         const userData = await getUser(auth.currentUser.uid);
         if (userData) {
           setUserName(userData.name);
-          if (userData.profile?.classId) {
-            const classData = await getClass(userData.profile.classId);
-            setUserClass(classData ? classData.name : '');
-          } else {
-            setUserClass('');
-          }
+          setUserClass(userData.profile && userData.profile.classId ? userData.profile.classId : '');
         }
       } catch (error) {
         console.log('Erro ao buscar dados do aluno:', error);
