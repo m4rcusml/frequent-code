@@ -160,6 +160,21 @@ export function Student() {
         return;
       }
 
+      // Validação de localização e raio permitido
+      const settings = await getSettings('checkin');
+      const allowedLocation = settings?.config?.checkin?.allowedLocation;
+      const maxDistance = settings?.config?.checkin?.maxDistance || 100;
+      if (allowedLocation) {
+        const distance = getDistance(
+          { latitude: userLocation.latitude, longitude: userLocation.longitude },
+          { latitude: allowedLocation.latitude, longitude: allowedLocation.longitude }
+        );
+        if (distance > maxDistance) {
+          Alert.alert('Fora da área permitida', `Você está a ${distance} metros do local permitido para check-in.`);
+          return;
+        }
+      }
+
       // TODO: Obter o classId do usuário atual
       const classId = 'default-class-id'; // Substituir pela lógica real
 
