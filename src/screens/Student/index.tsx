@@ -180,13 +180,14 @@ export function Student() {
 
       // Realiza o check-in
       await createCheckIn(
-        auth.currentUser.email,
+        auth.currentUser.uid,
         classId,
         {
           latitude: userLocation.latitude,
           longitude: userLocation.longitude,
           accuracy: 0, // TODO: Implementar precisão real
-        }
+        },
+        userName
       );
 
       setSelectedDays((prev) => [...prev, today.getDate()]);

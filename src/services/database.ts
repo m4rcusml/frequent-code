@@ -63,8 +63,9 @@ export const getUser = async (id: string): Promise<User | null> => {
 export const createCheckIn = async (
   userId: string,
   classId: string,
-  location: { latitude: number; longitude: number; accuracy: number }
-): Promise<CheckIn> => {
+  location: { latitude: number; longitude: number; accuracy: number },
+  userName?: string
+): Promise<CheckIn & { userName?: string }> => {
   const id = uuidv4();
   const now = new Date();
   
@@ -74,7 +75,7 @@ export const createCheckIn = async (
     deviceId: Application.applicationId || 'unknown',
   };
 
-  const checkIn: CheckIn = {
+  const checkIn: any = {
     id,
     userId,
     classId,
@@ -89,6 +90,7 @@ export const createCheckIn = async (
       notes: null,
     },
   };
+  if (userName) checkIn.userName = userName;
 
   await setDoc(doc(db, 'checkins', id), checkIn);
   return checkIn;
