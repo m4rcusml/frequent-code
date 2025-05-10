@@ -35,7 +35,7 @@ export function Student() {
   useEffect(() => {
     const fetchCheckins = async () => {
       try {
-        if (!auth.currentUser?.email) {
+        if (!auth.currentUser?.uid) {
           console.log('Usuário não autenticado.');
           return;
         }
@@ -44,7 +44,7 @@ export function Student() {
         const endDate = new Date(parseInt(year), months.indexOf(month) + 1, 0);
 
         const fetchedCheckins = await getCheckInsByUser(
-          auth.currentUser.email,
+          auth.currentUser.uid,
           startDate,
           endDate
         );
@@ -134,7 +134,7 @@ export function Student() {
   }, []);
 
   const handleCheckIn = async () => {
-    if (!auth.currentUser?.email) {
+    if (!auth.currentUser?.uid) {
       Alert.alert('Erro', 'Usuário não autenticado.');
       return;
     }
@@ -146,13 +146,14 @@ export function Student() {
 
     try {
       const today = new Date();
-      const formattedDate = today.toISOString().split('T')[0];
+      const startOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 0, 0, 0, 0);
+      const endOfDay = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
 
       // Verifica se já existe um check-in para o dia atual
       const existingCheckins = await getCheckInsByUser(
-        auth.currentUser.email,
-        new Date(today.setHours(0, 0, 0, 0)),
-        new Date(today.setHours(23, 59, 59, 999))
+        auth.currentUser.uid,
+        startOfDay,
+        endOfDay
       );
 
       if (existingCheckins.length > 0) {
