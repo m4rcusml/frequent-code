@@ -25,13 +25,17 @@ export function AdminSettings() {
   } | null>(null);
   const [radius, setRadius] = useState('100'); // Raio em metros
   const [address, setAddress] = useState<string>('');
+
+  const [phone, setPhone] = useState('');
+  const [addressField, setAddressField] = useState('');
+
   const [mapRegion, setMapRegion] = useState({
     latitude: -23.550520,
     longitude: -46.633308,
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
-
+  
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
@@ -87,8 +91,9 @@ export function AdminSettings() {
         status: 'active',
         profile: {
           avatar: null,
-          phone: null,
-          address: null,
+          phone: phone || null,
+          address: addressField || null,
+          classId: turma,
         },
       });
 
@@ -96,6 +101,8 @@ export function AdminSettings() {
       setTurma('');
       setNome('');
       setEmail('');
+      setPhone('');
+      setAddressField('');
     } catch (error: any) {
       console.log('Erro ao adicionar aluno:', error);
       if (error.code === 'auth/email-already-in-use') {
@@ -228,6 +235,18 @@ export function AdminSettings() {
             placeholder="email@exemplo.com"
             value={email}
             onChangeText={setEmail}
+          />
+          <Field
+            label="Telefone (opcional)"
+            placeholder="(92) 99999-9999"
+            value={phone}
+            onChangeText={setPhone}
+          />
+          <Field
+            label="Endereço (opcional)"
+            placeholder="Rua, número, bairro"
+            value={addressField}
+            onChangeText={setAddressField}
           />
           <TouchableOpacity
             style={styles.button}

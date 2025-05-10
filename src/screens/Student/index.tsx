@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, Alert } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, Alert, TextStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { styles } from './styles';
 import { MyText } from '@/components/MyText';
@@ -7,7 +7,7 @@ import { db, auth } from '@/services/firebaseConfig';
 import * as Location from 'expo-location';
 import { getDistance } from 'geolib';
 import { CheckIn } from '@/types/database';
-import { createCheckIn, getCheckInsByUser } from '@/services/database';
+import { createCheckIn, getCheckInsByUser, getUser, getSettings } from '@/services/database';
 
 const weekDays = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB'];
 const months = [
@@ -21,6 +21,10 @@ export function Student() {
   const [year, setYear] = useState('2025');
   const [checkins, setCheckins] = useState<CheckIn[]>([]);
   const [userLocation, setUserLocation] = useState<{ latitude: number, longitude: number } | null>(null);
+  const [userName, setUserName] = useState('');
+  const [userClass, setUserClass] = useState('');
+  const [checkinWindow, setCheckinWindow] = useState<{start: string, end: string} | null>(null);
+  const [history, setHistory] = useState<CheckIn[]>([]);
 
   useEffect(() => {
     const currentDate = new Date();
@@ -73,6 +77,27 @@ export function Student() {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      if (!auth.currentUser?.uid) return;
+      // Buscar dados do usuário
+      const user = await getUser(auth.currentUser.uid);
+      if (user) {
+        setUserName(user.name);
+        setUserClass(user.profile?.classId || '');
+      }
+      // Buscar horário permitido
+      const settings = await getSettings('checkin');
+      if (settings?.config?.checkin?.allowedTimeWindow) {
+        setCheckinWindow(settings.config.checkin.allowedTimeWindow);
+      }
+      // Buscar histórico dos últimos 5 check-ins
+      const email = auth.currentUser?.email || '';
+      const allCheckins = await getCheckInsByUser(email, new Date(2000,0,1), new Date());
+      setHistory(allCheckins.slice(0, 5));
     })();
   }, []);
 
@@ -217,52 +242,87 @@ export function Student() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <MyText variant="h1" style={styles.title}>
-          Check-in
-        </MyText>
-
-        <View style={styles.calendarContainer}>
-          <View style={styles.monthSelector}>
-            <TouchableOpacity
-              onPress={() => {
-                const currentIndex = months.indexOf(month);
-                if (currentIndex > 0) {
-                  setMonth(months[currentIndex - 1]);
-                } else {
-                  setMonth(months[11]);
-                  setYear((parseInt(year) - 1).toString());
-                }
-              }}
-            >
-              <Text style={styles.monthYearText}>◀</Text>
-            </TouchableOpacity>
-            <Text style={styles.monthYearText}>
-              {month} / {year}
-            </Text>
-            <TouchableOpacity
-              onPress={() => {
-                const currentIndex = months.indexOf(month);
-                if (currentIndex < 11) {
-                  setMonth(months[currentIndex + 1]);
-                } else {
-                  setMonth(months[0]);
-                  setYear((parseInt(year) + 1).toString());
-                }
-              }}
-            >
-              <Text style={styles.monthYearText}>▶</Text>
-            </TouchableOpacity>
-          </View>
-
-          {renderCalendarGrid()}
+        {/* Topo: Nome e Turma */}
+        <View style={styles.section}>
+          <MyText variant="h2">Olá, {userName}</MyText>
+          <MyText variant="body1">Turma: {userClass}</MyText>
         </View>
-
-        <TouchableOpacity
-          style={styles.checkInButton}
-          onPress={handleCheckIn}
-        >
-          <MyText variant="button">Realizar Check-in</MyText>
-        </TouchableOpacity>
+        {/* Horário permitido */}
+        {checkinWindow && (
+          <View style={styles.section}>
+            <MyText variant="body2">Horário permitido para check-in:</MyText>
+            <MyText variant="body1">{checkinWindow.start} - {checkinWindow.end}</MyText>
+          </View>
+        )}
+        {/* Calendário */}
+        <View style={styles.section}>
+          <MyText variant="h1" style={styles.title}>Check-in</MyText>
+          <View style={styles.calendarContainer}>
+            <View style={styles.monthSelector}>
+              <TouchableOpacity
+                onPress={() => {
+                  const currentIndex = months.indexOf(month);
+                  if (currentIndex > 0) {
+                    setMonth(months[currentIndex - 1]);
+                  } else {
+                    setMonth(months[11]);
+                    setYear((parseInt(year) - 1).toString());
+                  }
+                }}
+              >
+                <Text style={styles.monthYearText}>◀</Text>
+              </TouchableOpacity>
+              <Text style={styles.monthYearText}>
+                {month} / {year}
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  const currentIndex = months.indexOf(month);
+                  if (currentIndex < 11) {
+                    setMonth(months[currentIndex + 1]);
+                  } else {
+                    setMonth(months[0]);
+                    setYear((parseInt(year) + 1).toString());
+                  }
+                }}
+              >
+                <Text style={styles.monthYearText}>▶</Text>
+              </TouchableOpacity>
+            </View>
+            {renderCalendarGrid()}
+          </View>
+          <TouchableOpacity
+            style={styles.button}
+            onPress={handleCheckIn}
+          >
+            <MyText variant="button" style={styles.buttonText}>Fazer Check-in</MyText>
+          </TouchableOpacity>
+        </View>
+        {/* Histórico de check-ins */}
+        <View style={styles.section}>
+          <MyText variant="h3" style={{marginBottom: 8}}>Histórico recente</MyText>
+          {history.length === 0 && <MyText variant="body2">Nenhum check-in recente.</MyText>}
+          {history.map((item, idx) => {
+            const isPresent = item.status === 'present';
+            const statusStyle = {
+              ...styles.historyStatus,
+              ...(isPresent ? styles.historyStatus_present : styles.historyStatus_absent),
+            };
+            return (
+              <View key={item.id || idx} style={styles.historyCard}>
+                <MyText variant="body2">
+                  {item.date.toLocaleDateString()}
+                </MyText>
+                <MyText
+                  variant="body2"
+                  style={statusStyle}
+                >
+                  {isPresent ? 'Presente' : 'Falta'}
+                </MyText>
+              </View>
+            );
+          })}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

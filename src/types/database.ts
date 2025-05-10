@@ -16,6 +16,7 @@ export interface User {
     avatar: string | null;
     phone: string | null;
     address: string | null;
+    classId?: string | null;
   };
 }
 
