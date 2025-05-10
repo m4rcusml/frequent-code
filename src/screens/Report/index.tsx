@@ -3,6 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 import { collection, getDocs } from 'firebase/firestore';
 import { db } from '@/services/firebaseConfig';
+import { getSettings } from '@/services/database';
 
 import { MyText } from '@/components/MyText';
 import { styles } from './styles';
@@ -12,10 +13,35 @@ import { BarChart, PieChart } from 'react-native-gifted-charts';
 export function Report() {
   const [checkIns, setCheckIns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [startSchoolYear, setStartSchoolYear] = useState<string | null>(null);
+  const [alunos, setAlunos] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchCheckIns = async () => {
+    const fetchData = async () => {
       setLoading(true);
+      // Buscar data de início do ano letivo
+      let schoolYearDate: Date | null = null;
+      try {
+        const settings = await getSettings('checkin');
+        const startSchoolYearStr = settings?.config?.checkin?.startSchoolYear;
+        setStartSchoolYear(startSchoolYearStr || null);
+        if (startSchoolYearStr && startSchoolYearStr.length === 10) {
+          const [day, month, year] = startSchoolYearStr.split('/');
+          schoolYearDate = new Date(Number(year), Number(month) - 1, Number(day));
+        }
+      } catch {}
+      // Buscar todos os alunos
+      const usersSnap = await getDocs(collection(db, 'users'));
+      const alunosList = usersSnap.docs.map(doc => {
+        const d = doc.data();
+        return {
+          id: doc.id,
+          name: d.name,
+          role: d.role,
+        };
+      });
+      setAlunos(alunosList.filter(a => a.role === 'student'));
+      // Buscar todos os check-ins
       const snapshot = await getDocs(collection(db, 'checkins'));
       const data = snapshot.docs.map(doc => {
         const d = doc.data();
@@ -24,49 +50,86 @@ export function Report() {
           date: d.date?.toDate ? d.date.toDate() : d.date,
         };
       });
-      setCheckIns(data);
+      // Filtrar check-ins a partir do início do ano letivo, se definido
+      const filtered = schoolYearDate
+        ? data.filter(c => c.date instanceof Date && c.date >= schoolYearDate)
+        : data;
+      setCheckIns(filtered);
       setLoading(false);
     };
-    fetchCheckIns();
+    fetchData();
   }, []);
 
-  // KPIs
-  const total = checkIns.length;
-  const present = checkIns.filter(c => c.status === 'present').length;
-  const absent = checkIns.filter(c => c.status === 'absent').length;
-  const late = checkIns.filter(c => c.status === 'late').length;
-  const justified = checkIns.filter(c => c.status === 'justified').length;
-  const percentPresent = total ? Math.round((present / total) * 100) : 0;
-  const percentAbsent = total ? Math.round((absent / total) * 100) : 0;
-  const percentLate = total ? Math.round((late / total) * 100) : 0;
-
-  // Ranking de faltas
-  const faltasPorAluno: Record<string, number> = {};
-  checkIns.forEach(c => {
-    if (c.status === 'absent') {
-      const name = c.userName || c.userId;
-      faltasPorAluno[name] = (faltasPorAluno[name] || 0) + 1;
+  // Gerar lista de dias letivos (segunda a sexta)
+  function getDiasLetivos(start: Date, end: Date) {
+    const days = [];
+    let d = new Date(start);
+    while (d <= end) {
+      if (d.getDay() !== 0 && d.getDay() !== 6) {
+        days.push(new Date(d));
+      }
+      d.setDate(d.getDate() + 1);
     }
+    return days;
+  }
+
+  // Cálculo de presenças, faltas e atrasos reais
+  const hoje = new Date();
+  let diasLetivos: Date[] = [];
+  if (startSchoolYear) {
+    const [day, month, year] = startSchoolYear.split('/');
+    const start = new Date(Number(year), Number(month) - 1, Number(day));
+    diasLetivos = getDiasLetivos(start, hoje);
+  }
+
+  // Mapeamento aluno x data
+  const checkinMap: Record<string, Record<string, any>> = {};
+  checkIns.forEach(c => {
+    if (!checkinMap[c.userId]) checkinMap[c.userId] = {};
+    const dateStr = c.date instanceof Date ? c.date.toISOString().slice(0, 10) : String(c.date);
+    checkinMap[c.userId][dateStr] = c;
   });
-  const rankingFaltas = Object.entries(faltasPorAluno)
-    .map(([name, faltas]) => ({ name, faltas }))
+
+  // Tabela detalhada por aluno considerando faltas reais
+  const tabelaAlunos = alunos.map(aluno => {
+    let presencas = 0;
+    let atrasos = 0;
+    let faltas = 0;
+    diasLetivos.forEach(dia => {
+      const dateStr = dia.toISOString().slice(0, 10);
+      const checkin = checkinMap[aluno.id]?.[dateStr];
+      if (checkin) {
+        if (checkin.status === 'present') presencas++;
+        else if (checkin.status === 'late') atrasos++;
+        else faltas++;
+      } else {
+        faltas++;
+      }
+    });
+    const total = presencas + atrasos + faltas;
+    return {
+      name: aluno.name,
+      presencas,
+      atrasos,
+      faltas,
+      total,
+      percent: total ? Math.round((presencas / total) * 100) : 0,
+    };
+  });
+
+  // KPIs reais
+  const totalFaltas = tabelaAlunos.reduce((acc, a) => acc + a.faltas, 0);
+  const totalPresencas = tabelaAlunos.reduce((acc, a) => acc + a.presencas, 0);
+  const totalAtrasos = tabelaAlunos.reduce((acc, a) => acc + a.atrasos, 0);
+  const totalRegistros = tabelaAlunos.reduce((acc, a) => acc + a.total, 0);
+  const percentPresent = totalRegistros ? Math.round((totalPresencas / totalRegistros) * 100) : 0;
+  const percentAbsent = totalRegistros ? Math.round((totalFaltas / totalRegistros) * 100) : 0;
+  const percentLate = totalRegistros ? Math.round((totalAtrasos / totalRegistros) * 100) : 0;
+
+  // Ranking de faltas reais
+  const rankingFaltas = [...tabelaAlunos]
     .sort((a, b) => b.faltas - a.faltas)
     .slice(0, 5);
-
-  // Tabela detalhada por aluno
-  const alunos: Record<string, { name: string, presencas: number, faltas: number, atrasos: number, total: number }> = {};
-  checkIns.forEach(c => {
-    const name = c.userName || c.userId;
-    if (!alunos[name]) alunos[name] = { name, presencas: 0, faltas: 0, atrasos: 0, total: 0 };
-    if (c.status === 'present') alunos[name].presencas++;
-    if (c.status === 'absent') alunos[name].faltas++;
-    if (c.status === 'late') alunos[name].atrasos++;
-    alunos[name].total++;
-  });
-  const tabelaAlunos = Object.values(alunos).map(a => ({
-    ...a,
-    percent: a.total ? Math.round((a.presencas / a.total) * 100) : 0
-  })).sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <SafeAreaView style={styles.container}>
@@ -84,10 +147,6 @@ export function Report() {
           <View style={{ backgroundColor: '#ffebee', borderRadius: 12, padding: 16, alignItems: 'center', minWidth: 90 }}>
             <MyText variant="h4" style={{ color: '#F44336', fontWeight: 'bold' }}>{percentAbsent}%</MyText>
             <MyText variant="body2">Faltas</MyText>
-          </View>
-          <View style={{ backgroundColor: '#fffde7', borderRadius: 12, padding: 16, alignItems: 'center', minWidth: 90 }}>
-            <MyText variant="h4" style={{ color: '#FFC107', fontWeight: 'bold' }}>{percentLate}%</MyText>
-            <MyText variant="body2">Atrasos</MyText>
           </View>
         </View>
 
@@ -112,7 +171,7 @@ export function Report() {
               Frequência média geral: {percentPresent}%
             </MyText>
             <MyText variant="h6" color="black">
-              Total de check-ins: {total}
+              Total de check-ins: {totalRegistros}
             </MyText>
           </View>
         </View>
@@ -141,7 +200,6 @@ export function Report() {
             <MyText variant="body2" style={{ flex: 2, fontWeight: 'bold', color: '#444' }}>Aluno</MyText>
             <MyText variant="body2" style={{ flex: 1, fontWeight: 'bold', color: '#444' }}>Presenças</MyText>
             <MyText variant="body2" style={{ flex: 1, fontWeight: 'bold', color: '#444' }}>Faltas</MyText>
-            <MyText variant="body2" style={{ flex: 1, fontWeight: 'bold', color: '#444' }}>Atrasos</MyText>
             <MyText variant="body2" style={{ flex: 1, fontWeight: 'bold', color: '#444' }}>% Presença</MyText>
           </View>
           {tabelaAlunos.length === 0 && <MyText variant="body2">Nenhum aluno registrado.</MyText>}
@@ -150,7 +208,6 @@ export function Report() {
               <MyText variant="body2" style={{ flex: 2 }}>{aluno.name}</MyText>
               <MyText variant="body2" style={{ flex: 1 }}>{aluno.presencas}</MyText>
               <MyText variant="body2" style={{ flex: 1 }}>{aluno.faltas}</MyText>
-              <MyText variant="body2" style={{ flex: 1 }}>{aluno.atrasos}</MyText>
               <MyText variant="body2" style={{ flex: 1 }}>{aluno.percent}%</MyText>
             </View>
           ))}
