@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ScrollView, View, TouchableOpacity, Alert, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import MapView, { Marker, Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
 
 import { MyText } from '@/components/MyText';
@@ -24,29 +25,49 @@ export function AdminSettings() {
   } | null>(null);
   const [radius, setRadius] = useState('100'); // Raio em metros
   const [address, setAddress] = useState<string>('');
+  const [mapRegion, setMapRegion] = useState({
+    latitude: -23.550520,
+    longitude: -46.633308,
+    latitudeDelta: 0.0922,
+    longitudeDelta: 0.0421,
+  });
 
   useEffect(() => {
     (async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
         const location = await Location.getCurrentPositionAsync({});
+        const newRegion = {
+          latitude: location.coords.latitude,
+          longitude: location.coords.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        };
+        setMapRegion(newRegion);
         setSelectedLocation({
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         });
-        // Obter endereço
-        const [addressResult] = await Location.reverseGeocodeAsync({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        });
-        if (addressResult) {
-          setAddress(
-            `${addressResult.street}, ${addressResult.district}, ${addressResult.city}`
-          );
-        }
+        updateAddress(location.coords.latitude, location.coords.longitude);
       }
     })();
   }, []);
+
+  const updateAddress = async (latitude: number, longitude: number) => {
+    try {
+      const [addressResult] = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude,
+      });
+      if (addressResult) {
+        setAddress(
+          `${addressResult.street}, ${addressResult.district}, ${addressResult.city}`
+        );
+      }
+    } catch (error) {
+      console.log('Erro ao obter endereço:', error);
+    }
+  };
 
   const handleAddStudent = async () => {
     if (!turma || !nome || !email) {
@@ -126,25 +147,27 @@ export function AdminSettings() {
     }
   };
 
+  const handleMapPress = async (e: any) => {
+    const { latitude, longitude } = e.nativeEvent.coordinate;
+    setSelectedLocation({ latitude, longitude });
+    updateAddress(latitude, longitude);
+  };
+
   const handleUpdateLocation = async () => {
     try {
       const location = await Location.getCurrentPositionAsync({});
+      const newRegion = {
+        latitude: location.coords.latitude,
+        longitude: location.coords.longitude,
+        latitudeDelta: 0.0922,
+        longitudeDelta: 0.0421,
+      };
+      setMapRegion(newRegion);
       setSelectedLocation({
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
       });
-      
-      // Obter endereço
-      const [addressResult] = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-      });
-      if (addressResult) {
-        setAddress(
-          `${addressResult.street}, ${addressResult.district}, ${addressResult.city}`
-        );
-      }
-      
+      updateAddress(location.coords.latitude, location.coords.longitude);
       Alert.alert('Sucesso', 'Localização atualizada com sucesso!');
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível obter a localização atual.');
@@ -209,8 +232,31 @@ export function AdminSettings() {
           />
           
           <View style={styles.locationContainer}>
-            <MyText variant="h5">Localização Atual</MyText>
-            {selectedLocation ? (
+            <MyText variant="h5">Localização do Check-in</MyText>
+            <View style={styles.mapContainer}>
+              <MapView
+                style={styles.map}
+                region={mapRegion}
+                onRegionChangeComplete={setMapRegion}
+                onPress={handleMapPress}
+              >
+                {selectedLocation && (
+                  <>
+                    <Marker
+                      coordinate={selectedLocation}
+                      title="Local de Check-in"
+                    />
+                    <Circle
+                      center={selectedLocation}
+                      radius={parseInt(radius)}
+                      strokeColor="rgba(138, 82, 254, 0.5)"
+                      fillColor="rgba(138, 82, 254, 0.2)"
+                    />
+                  </>
+                )}
+              </MapView>
+            </View>
+            {selectedLocation && (
               <>
                 <MyText variant="body1">
                   Endereço: {address || 'Carregando...'}
@@ -222,14 +268,12 @@ export function AdminSettings() {
                   Longitude: {selectedLocation.longitude.toFixed(6)}
                 </MyText>
               </>
-            ) : (
-              <MyText variant="body1">Nenhuma localização selecionada</MyText>
             )}
             <TouchableOpacity
               style={styles.button}
               onPress={handleUpdateLocation}
             >
-              <MyText variant="button">Atualizar Localização</MyText>
+              <MyText variant="button">Usar Minha Localização</MyText>
             </TouchableOpacity>
           </View>
 
