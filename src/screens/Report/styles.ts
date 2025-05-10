@@ -17,6 +17,21 @@ export const styles = StyleSheet.create({
     paddingVertical: 8,
     textAlign: 'center'
   },
+  purpleTitleBox: {
+    backgroundColor: '#8A52FE',
+    borderRadius: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    marginBottom: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  kpiLabel: {
+    color: '#444',
+    fontWeight: 'normal',
+    fontSize: 13,
+    marginTop: 6,
+  },
   list: {
     gap: 10
   },

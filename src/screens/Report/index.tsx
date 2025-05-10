@@ -134,9 +134,11 @@ export function Report() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scroll}>
-        <MyText variant="h1" style={styles.title}>
-          Painel de relatórios
-        </MyText>
+        <View style={styles.purpleTitleBox}>
+          <MyText variant="h1" style={{ color: '#fff', textAlign: 'center' }}>
+            Painel de relatórios
+          </MyText>
+        </View>
 
         {/* KPIs */}
         <View style={{ flexDirection: 'row', gap: 12, marginBottom: 16, justifyContent: 'center' }}>
@@ -167,19 +169,21 @@ export function Report() {
             ]}
           />
           <View>
-            <MyText variant="h6" color="black">
+            <MyText variant="h6" style={styles.kpiLabel}>
               Frequência média geral: {percentPresent}%
             </MyText>
-            <MyText variant="h6" color="black">
+            <MyText variant="h6" style={styles.kpiLabel}>
               Total de check-ins: {totalRegistros}
             </MyText>
           </View>
         </View>
 
         {/* Ranking de faltas */}
-        <MyText variant="h3" style={styles.title}>
-          Alunos com mais faltas
-        </MyText>
+        <View style={styles.purpleTitleBox}>
+          <MyText variant="h3" style={{ color: '#fff', textAlign: 'center' }}>
+            Alunos com mais faltas
+          </MyText>
+        </View>
         <View style={{ gap: 6, marginBottom: 16 }}>
           {rankingFaltas.length === 0 && <MyText variant="body2">Nenhuma falta registrada.</MyText>}
           {rankingFaltas.map((aluno, idx) => (
@@ -192,9 +196,11 @@ export function Report() {
         </View>
 
         {/* Tabela detalhada */}
-        <MyText variant="h3" style={styles.title}>
-          Tabela detalhada
-        </MyText>
+        <View style={styles.purpleTitleBox}>
+          <MyText variant="h3" style={{ color: '#fff', textAlign: 'center' }}>
+            Tabela detalhada
+          </MyText>
+        </View>
         <View style={{ backgroundColor: '#f6f4fd', borderRadius: 10, padding: 8, marginBottom: 24 }}>
           <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderColor: '#e0dcfb', paddingBottom: 4, marginBottom: 6 }}>
             <MyText variant="body2" style={{ flex: 2, fontWeight: 'bold', color: '#444' }}>Aluno</MyText>
