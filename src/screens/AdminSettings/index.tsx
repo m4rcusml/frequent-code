@@ -24,6 +24,8 @@ export function AdminSettings() {
   } | null>(null);
   const [radius, setRadius] = useState('100'); // Raio em metros
   const [address, setAddress] = useState<string>('');
+  const [phone, setPhone] = useState('');
+  const [addressField, setAddressField] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -68,6 +70,7 @@ export function AdminSettings() {
           avatar: null,
           phone: phone || null,
           address: addressField || null,
+          classId: turma,
         },
       });
 

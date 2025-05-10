@@ -87,7 +87,7 @@ export function Student() {
       const user = await getUser(auth.currentUser.uid);
       if (user) {
         setUserName(user.name);
-        setUserClass('');
+        setUserClass(user.profile?.classId || '');
       }
       // Buscar horário permitido
       const settings = await getSettings('checkin');
