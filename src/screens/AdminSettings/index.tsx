@@ -30,8 +30,8 @@ export function AdminSettings() {
   const [addressField, setAddressField] = useState('');
 
   const [mapRegion, setMapRegion] = useState({
-    latitude: -23.550520,
-    longitude: -46.633308,
+    latitude: -3.119027,
+    longitude: -60.014179,
     latitudeDelta: 0.0922,
     longitudeDelta: 0.0421,
   });
