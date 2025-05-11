@@ -1,10 +1,11 @@
 import React from 'react';
-import { ScrollView, View, ActivityIndicator, TouchableOpacity, FlatList } from 'react-native';
+import { ScrollView, View, ActivityIndicator, TouchableOpacity, FlatList, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState, useMemo } from 'react';
 import { collection, getDocs, query, where, orderBy, limit, Timestamp } from 'firebase/firestore';
 import { db } from '@/services/firebaseConfig';
 import { getSettings } from '@/services/database';
+import { Ionicons } from '@expo/vector-icons';
 
 import { MyText } from '@/components/MyText';
 import { styles } from './styles';
@@ -14,6 +15,9 @@ import { PieChart } from 'react-native-gifted-charts';
 const CHECKINS_PER_PAGE = 50;
 const INITIAL_MONTHS = 3; // Carrega dados dos últimos 3 meses inicialmente
 
+type SortField = 'name' | 'presencas' | 'faltas' | 'percent';
+type SortDirection = 'asc' | 'desc';
+
 export function Report() {
   const [checkIns, setCheckIns] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,6 +26,9 @@ export function Report() {
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month');
   const [lastDoc, setLastDoc] = useState<any>(null);
   const [hasMore, setHasMore] = useState(true);
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Função para buscar check-ins com paginação
   const fetchCheckIns = async (isInitial = false) => {
@@ -41,22 +48,50 @@ export function Report() {
           break;
       }
 
-      const checkinsQuery = query(
+      // Construir a query base
+      let checkinsQuery = query(
         collection(db, 'checkins'),
         where('date', '>=', Timestamp.fromDate(startDate)),
         orderBy('date', 'desc'),
-        limit(CHECKINS_PER_PAGE),
-        ...(lastDoc && !isInitial ? [where('date', '<', lastDoc.date)] : [])
+        limit(CHECKINS_PER_PAGE)
       );
 
+      // Adicionar condição de paginação apenas se tivermos um lastDoc válido
+      if (!isInitial && lastDoc?.date) {
+        checkinsQuery = query(
+          collection(db, 'checkins'),
+          where('date', '>=', Timestamp.fromDate(startDate)),
+          where('date', '<', lastDoc.date),
+          orderBy('date', 'desc'),
+          limit(CHECKINS_PER_PAGE)
+        );
+      }
+
       const snapshot = await getDocs(checkinsQuery);
+      
+      // Verificar se temos documentos
+      if (snapshot.empty) {
+        setHasMore(false);
+        if (isInitial) {
+          setCheckIns([]);
+        }
+        return;
+      }
+
       const newCheckIns = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
         date: doc.data().date?.toDate()
       }));
 
-      setLastDoc(snapshot.docs[snapshot.docs.length - 1]);
+      // Atualizar o lastDoc apenas se tivermos documentos
+      const lastVisible = snapshot.docs[snapshot.docs.length - 1];
+      if (lastVisible) {
+        setLastDoc({
+          date: lastVisible.data().date
+        });
+      }
+
       setHasMore(snapshot.docs.length === CHECKINS_PER_PAGE);
 
       if (isInitial) {
@@ -66,6 +101,11 @@ export function Report() {
       }
     } catch (error) {
       console.error('Erro ao buscar check-ins:', error);
+      // Em caso de erro, resetar o estado de paginação
+      setHasMore(false);
+      if (isInitial) {
+        setCheckIns([]);
+      }
     }
   };
 
@@ -114,9 +154,11 @@ export function Report() {
 
   // Resetar paginação quando mudar o período
   useEffect(() => {
+    setLoading(true); // Ativa o loading ao trocar o período
     setLastDoc(null);
     setHasMore(true);
-    fetchCheckIns(true);
+    setCheckIns([]); // Limpar os check-ins existentes
+    fetchCheckIns(true).finally(() => setLoading(false));
   }, [selectedPeriod]);
 
   // Cálculos otimizados usando useMemo
@@ -165,10 +207,13 @@ export function Report() {
   // Cálculo das porcentagens
   const { percentPresent, percentAbsent, percentLate } = useMemo(() => {
     const total = kpis.totalRegistros;
+    const percentPresent = total ? Math.round((kpis.totalPresencas / total) * 100) : 0;
+    const percentAbsent = total ? Math.round((kpis.totalFaltas / total) * 100) : 0;
+    const percentLate = total ? Math.round((kpis.totalAtrasos / total) * 100) : 0;
     return {
-      percentPresent: total ? Math.round((kpis.totalPresencas / total) * 100) : 0,
-      percentAbsent: total ? Math.round((kpis.totalFaltas / total) * 100) : 0,
-      percentLate: total ? Math.round((kpis.totalAtrasos / total) * 100) : 0,
+      percentPresent: isNaN(percentPresent) ? 0 : percentPresent,
+      percentAbsent: isNaN(percentAbsent) ? 0 : percentAbsent,
+      percentLate: isNaN(percentLate) ? 0 : percentLate,
     };
   }, [kpis]);
 
@@ -180,9 +225,58 @@ export function Report() {
     [tabelaAlunos]
   );
 
-  if (loading) {
+  // Função para ordenar a tabela
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Tabela ordenada e filtrada pelo termo de busca
+  const sortedTabelaAlunos = useMemo(() => {
+    let lista = [...tabelaAlunos];
+    if (searchTerm.trim()) {
+      lista = lista.filter(aluno => aluno.name.toLowerCase().includes(searchTerm.trim().toLowerCase()));
+    }
+    return lista.sort((a, b) => {
+      let comparison = 0;
+      switch (sortField) {
+        case 'name':
+          comparison = a.name.localeCompare(b.name);
+          break;
+        case 'presencas':
+          comparison = a.presencas - b.presencas;
+          break;
+        case 'faltas':
+          comparison = a.faltas - b.faltas;
+          break;
+        case 'percent':
+          comparison = a.percent - b.percent;
+          break;
+      }
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [tabelaAlunos, sortField, sortDirection, searchTerm]);
+
+  // Função para renderizar o ícone de ordenação
+  const renderSortIcon = (field: SortField) => {
+    if (sortField !== field) return null;
     return (
-      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+      <Ionicons
+        name={sortDirection === 'asc' ? 'chevron-up' : 'chevron-down'}
+        size={16}
+        color="#8A52FE"
+        style={styles.sortIcon}
+      />
+    );
+  };
+
+  if (loading || !checkIns.length || !alunos.length) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}> 
         <ActivityIndicator size="large" color="#8A52FE" />
         <MyText variant="body1" style={{ marginTop: 16 }}>Carregando dados...</MyText>
       </SafeAreaView>
@@ -252,9 +346,9 @@ export function Report() {
                 textBackgroundRadius={26}
                 textBackgroundColor="transparent"
                 data={[
-                  { value: percentPresent, color: '#4CAF50', text: `${percentPresent}%`, fontWeight: 'bold', textColor: 'white' },
-                  { value: percentAbsent, color: '#F44336', text: `${percentAbsent}%`, fontWeight: 'bold', textColor: 'white' },
-                  { value: percentLate, color: '#FFC107', text: `${percentLate}%`, fontWeight: 'bold', textColor: 'white' },
+                  { value: isNaN(percentPresent) ? 0 : percentPresent, color: '#4CAF50', text: `${isNaN(percentPresent) ? 0 : percentPresent}%`, fontWeight: 'bold', textColor: 'white' },
+                  { value: isNaN(percentAbsent) ? 0 : percentAbsent, color: '#F44336', text: `${isNaN(percentAbsent) ? 0 : percentAbsent}%`, fontWeight: 'bold', textColor: 'white' },
+                  { value: isNaN(percentLate) ? 0 : percentLate, color: '#FFC107', text: `${isNaN(percentLate) ? 0 : percentLate}%`, fontWeight: 'bold', textColor: 'white' },
                 ]}
               />
               <View>
@@ -293,34 +387,87 @@ export function Report() {
                 Tabela detalhada
               </MyText>
             </View>
+            <TextInput
+              style={{
+                backgroundColor: '#fff',
+                borderRadius: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                marginBottom: 12,
+                borderWidth: 1,
+                borderColor: '#e0dcfb',
+                fontSize: 16,
+              }}
+              placeholder="Buscar aluno pelo nome..."
+              value={searchTerm}
+              onChangeText={setSearchTerm}
+              autoCorrect={false}
+              autoCapitalize="none"
+            />
             <View style={styles.tableContainer}>
               <View style={styles.tableHeader}>
-                <MyText variant="body2" style={styles.tableHeaderCell}>Aluno</MyText>
-                <MyText variant="body2" style={styles.tableHeaderCell}>Presenças</MyText>
-                <MyText variant="body2" style={styles.tableHeaderCell}>Faltas</MyText>
-                <MyText variant="body2" style={styles.tableHeaderCell}>% Presença</MyText>
+                <TouchableOpacity 
+                  style={[
+                    styles.tableHeaderCell,
+                    sortField === 'name' && styles.tableHeaderCellActive
+                  ]}
+                  onPress={() => handleSort('name')}
+                >
+                  <MyText variant="body2" style={styles.tableHeaderText}>Aluno</MyText>
+                  {renderSortIcon('name')}
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[
+                    styles.tableHeaderCell,
+                    sortField === 'presencas' && styles.tableHeaderCellActive
+                  ]}
+                  onPress={() => handleSort('presencas')}
+                >
+                  <MyText variant="body2" style={styles.tableHeaderText}>Presenças</MyText>
+                  {renderSortIcon('presencas')}
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[
+                    styles.tableHeaderCell,
+                    sortField === 'faltas' && styles.tableHeaderCellActive
+                  ]}
+                  onPress={() => handleSort('faltas')}
+                >
+                  <MyText variant="body2" style={styles.tableHeaderText}>Faltas</MyText>
+                  {renderSortIcon('faltas')}
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[
+                    styles.tableHeaderCell,
+                    sortField === 'percent' && styles.tableHeaderCellActive
+                  ]}
+                  onPress={() => handleSort('percent')}
+                >
+                  <MyText variant="body2" style={styles.tableHeaderText}>% Presença</MyText>
+                  {renderSortIcon('percent')}
+                </TouchableOpacity>
               </View>
-              {tabelaAlunos.length === 0 ? (
+              {sortedTabelaAlunos.length === 0 ? (
                 <MyText variant="body2">Nenhum aluno registrado.</MyText>
               ) : (
-                tabelaAlunos.map((aluno) => (
+                sortedTabelaAlunos.map((aluno) => (
                   <View key={aluno.name} style={styles.tableRow}>
-                    <MyText variant="body2" style={styles.tableCell}>{aluno.name}</MyText>
-                    <MyText variant="body2" style={styles.tableCell}>{aluno.presencas}</MyText>
-                    <MyText variant="body2" style={styles.tableCell}>{aluno.faltas}</MyText>
-                    <MyText variant="body2" style={styles.tableCell}>{aluno.percent}%</MyText>
+                    <MyText variant="body2" style={styles.tableCellName}>{aluno.name}</MyText>
+                    <MyText variant="body2" style={styles.tableCell}>{isNaN(aluno.presencas) ? 0 : aluno.presencas}</MyText>
+                    <MyText variant="body2" style={styles.tableCell}>{isNaN(aluno.faltas) ? 0 : aluno.faltas}</MyText>
+                    <MyText variant="body2" style={styles.tableCell}>{isNaN(aluno.percent) ? 0 : aluno.percent}%</MyText>
                   </View>
                 ))
               )}
             </View>
           </>
         )}
-        ListFooterComponent={() => hasMore && (
+        ListFooterComponent={() => (hasMore && sortedTabelaAlunos.length > 0) ? (
           <View style={{ padding: 16, alignItems: 'center' }}>
             <ActivityIndicator size="small" color="#8A52FE" />
             <MyText variant="body2" style={{ marginTop: 8 }}>Carregando mais dados...</MyText>
           </View>
-        )}
+        ) : null}
       />
     </SafeAreaView>
   );

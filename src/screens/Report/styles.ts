@@ -101,6 +101,22 @@ export const styles = StyleSheet.create({
     flex: 1,
     fontWeight: 'bold',
     color: '#444',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  tableHeaderText: {
+    flex: 1,
+    textAlign: 'center',
+  },
+  sortIcon: {
+    marginLeft: 4,
+    fontSize: 12,
+  },
+  tableHeaderCellActive: {
+    backgroundColor: '#e0dcfb',
+    borderRadius: 6,
   },
   tableRow: {
     flexDirection: 'row',
@@ -113,5 +129,11 @@ export const styles = StyleSheet.create({
   },
   tableCell: {
     flex: 1,
+    textAlign: 'center',
+  },
+  tableCellName: {
+    flex: 1,
+    textAlign: 'left',
+    paddingLeft: 8,
   },
 })
