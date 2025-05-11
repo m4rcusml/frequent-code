@@ -41,5 +41,10 @@ export default {
   ],
   experiments: {
     newArchEnabled: true
+  },
+  extra: {
+    eas: {
+      projectId: "a090306c-294e-4822-87b5-7fccc4f23dc8"
+    }
   }
 }; 

@@ -128,8 +128,13 @@ export function AdminSettings() {
     }
 
     try {
+      // Get existing settings first
+      const existingSettings = await getSettings('checkin');
+      const currentConfig = existingSettings?.config?.checkin || {};
+
       await updateSettings('checkin', {
         checkin: {
+          ...currentConfig,  // Keep existing settings
           allowedTimeWindow: {
             start: startTime,
             end: endTime,
@@ -159,8 +164,13 @@ export function AdminSettings() {
     }
 
     try {
+      // Get existing settings first
+      const existingSettings = await getSettings('checkin');
+      const currentConfig = existingSettings?.config?.checkin || {};
+
       await updateSettings('checkin', {
         checkin: {
+          ...currentConfig,  // Keep existing settings
           maxDistance: radiusValue,
           requireLocation: true,
           allowedLocation: {
