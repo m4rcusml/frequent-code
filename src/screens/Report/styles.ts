@@ -39,5 +39,79 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 20,  
-  }
+  },
+  periodButton: {
+    flex: 1,
+    backgroundColor: '#f6f4fd',
+    borderRadius: 8,
+    padding: 12,
+    alignItems: 'center',
+  },
+  periodButtonActive: {
+    backgroundColor: '#8A52FE',
+  },
+  periodButtonText: {
+    color: '#444',
+    fontWeight: '500',
+  },
+  periodButtonTextActive: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  kpiBox: {
+    backgroundColor: '#e8f5e9',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    minWidth: 90,
+  },
+  rankingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 6,
+    padding: 8,
+  },
+  rankingPosition: {
+    width: 24,
+    fontWeight: 'bold',
+    color: '#8A52FE',
+  },
+  rankingName: {
+    flex: 1,
+  },
+  rankingFaltas: {
+    color: '#F44336',
+    fontWeight: 'bold',
+  },
+  tableContainer: {
+    backgroundColor: '#f6f4fd',
+    borderRadius: 10,
+    padding: 8,
+    marginBottom: 24,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderColor: '#e0dcfb',
+    paddingBottom: 4,
+    marginBottom: 6,
+  },
+  tableHeaderCell: {
+    flex: 1,
+    fontWeight: 'bold',
+    color: '#444',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 4,
+    backgroundColor: '#fff',
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 2,
+  },
+  tableCell: {
+    flex: 1,
+  },
 })
